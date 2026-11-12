@@ -11,6 +11,8 @@
 
 **只改界面，不动协议。** 串流管线、驱动、编解码与官方 v20.14.1 完全一致，可以和官方客户端 APK、官方 SteamVR 驱动混用。
 
+![ALVR 面板 · 设备页](docs/screenshots/device.png)
+
 ---
 
 ## 下载
@@ -52,6 +54,22 @@ ALVR-CN/
 **有意保留英文**：日志正文、许可证文本、编码器与协议专有名词（H264、HEVC、AV1、NVENC、AMF、CBR、VBR、CAVLC、CABAC、UDP、TCP、DSCP、IDR、GOP）。
 
 词条共 436 条，中英对照表见 [`源码补丁/翻译对照表-设置项.txt`](源码补丁/翻译对照表-设置项.txt) 与 [`源码补丁/翻译对照表-补充.txt`](源码补丁/翻译对照表-补充.txt)。
+
+---
+
+## 截图
+
+设置页六个大类，全部子项标题、开关、下拉选项、滑块单位与问号悬浮说明均已汉化：
+
+| 设置 · 预设 | 设置 · 视频 |
+| :---: | :---: |
+| ![设置-预设](docs/screenshots/settings-preset.png) | ![设置-视频](docs/screenshots/settings-video.png) |
+
+| 设置 · 音频 | 设置 · 头显 |
+| :---: | :---: |
+| ![设置-音频](docs/screenshots/settings-audio.png) | ![设置-头显](docs/screenshots/settings-headset.png) |
+
+设备页：有线连接 / 新的无线设备 / 已信任的无线设备，含「编辑」「移除」与顶部 SteamVR 未运行的黄色提示条 —— 见页首截图。
 
 ---
 
@@ -126,6 +144,7 @@ ALVR-CN/
 │  └─ 翻译对照表-补充.txt
 ├─ scripts/
 │  └─ build.ps1                     # 克隆 + 打补丁 + 编译
+├─ docs/screenshots/                # 界面截图
 ├─ LICENSES/                        # ALVR / Valve / FFmpeg 许可证原文
 ├─ 使用说明.txt                      # 面向普通用户的上手指南与崩溃排查
 ├─ LICENSE
