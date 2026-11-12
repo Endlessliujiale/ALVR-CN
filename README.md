@@ -15,12 +15,17 @@
 
 ## 下载
 
-到 [Releases](../../releases/latest) 下载 `ALVR-CN-v20.14.1.zip`，解压到**纯英文路径**即可使用：
+到 [Releases](https://github.com/Endlessliujiale/ALVR-CN/releases/latest) 下载 **`ALVR-CN-v20.14.1.zip`**（70 MiB），解压到**纯英文路径**即可使用：
+
+直链：`https://github.com/Endlessliujiale/ALVR-CN/releases/download/v20.14.1-zh/ALVR-CN-v20.14.1.zip`
+
+解压后：
 
 ```
 ALVR-CN/
 ├─ streamer/    ← 串流端，运行 ALVR Dashboard.exe
 ├─ launcher/    ← 启动器（可选），运行 ALVR Launcher.exe
+├─ 源码补丁/     ← 相对官方 v20.14.1 的 37 个文件改动
 └─ 使用说明.txt
 ```
 
