@@ -1,0 +1,129 @@
+ALVR 汉化版 v20.14.1（简体中文）
+=====================================
+
+零、最重要的一条：安装路径必须是纯英文
+--------------------------------------
+ALVR 的 SteamVR 驱动（driver_alvr_server.dll）是 C++ 写的，它把 session.json 的路径
+按「窄字符串」传给 std::ifstream，MSVC 会用系统 ANSI 代码页（中文系统是 GBK/936）去解释。
+只要路径里有中文、空格以外的非 ASCII 字符，驱动就打不开 session.json，于是：
+
+    Error on parsing session config (...): syntax error at line 1 near:
+    Failed to create staging texture!
+    → SteamVR 直接弹「SteamVR 出现重大错误」
+
+所以请把整个目录放在纯英文路径下，例如：
+
+    C:\ALVR-CN\            ← 推荐
+    D:\ALVR\               ← 也可以
+    桌面\ALVR 中文版\       ← 不行（有中文）
+    C:\Users\张三\...       ← 不行（用户名是中文）
+
+面板启动时如果检测到路径里有非 ASCII 字符，顶部会显示一条黄色警告条，看到就说明必须搬家。
+
+一、这是什么
+------------
+基于官方 ALVR v20.14.1 源码重新编译的简体中文版，包含串流端面板（ALVR Dashboard）
+和启动器（ALVR Launcher）。原版是英文界面，本版把界面文本、全部设置项名称与说明、
+提示语、统计图表标签、启动器提示都译成了简体中文，并内置中文字体回退，不会出现方块字。
+
+二、怎么用
+----------
+1) 串流端（主要部分）
+   运行  streamer\ALVR Dashboard.exe
+   - 左侧标签：设备 / 统计 / 设置 / 安装 / 日志 / 调试 / 关于。
+   - 面板左下角会显示「SteamVR: 未连接 / 已连接」。
+   - 用面板里的「启动 SteamVR」按钮启动 SteamVR，不要自己先开 SteamVR
+     （面板启动前会把当前设置写进 session.json，驱动需要它）。
+
+2) 启动器（可选）
+   运行  launcher\ALVR Launcher.exe
+   用于下载/管理多个 ALVR 版本、安装手机端 APK。
+   从启动器下载安装的版本是官方英文版。
+
+3) 替换已有安装
+   把 streamer\ALVR Dashboard.exe 覆盖到原来的 ALVR 目录即可
+   （bin\、licenses\、session.json 都不用动，配置会保留）。
+   前提：那个目录本身得是纯英文路径。
+
+三、汉化范围
+------------
+· 主界面：标签页、按钮、状态文字（已连接 / 串流中 / 未连接…）
+· 设置页：6 个大类（预设 / 视频 / 音频 / 头显 / 连接 / 额外）
+          + 全部子项的标题、开关、下拉框选项、滑块单位、
+            帮助问号的悬浮说明、黄色注意事项、⚠ 重启提示、🔵 实时生效提示
+· 设备页：有线连接、新的无线设备、已信任的无线设备、编辑连接弹窗
+· 统计页：延迟分段、帧率、码率与吞吐、各项汇总数值
+· 安装页：设置向导、防火墙规则、驱动注册
+· 日志页 / 调试页 / 关于页
+· 启动器：全部按钮、对话框、进度提示、错误提示
+· 随机通知提示（底部小贴士 27 条全部翻译）
+
+有意保留英文：日志正文、许可证文本、编码器与协议专有名词
+（H264、HEVC、AV1、NVENC、AMF、CBR、VBR、CAVLC、CABAC、UDP、TCP、DSCP、IDR、GOP）。
+
+四、字体说明
+------------
+启动时自动加载系统中文字体，优先级：
+  exe 同目录的 cjk.ttf / cjk.otf / cjk.ttc
+  → C:\Windows\Fonts\msyh.ttc（微软雅黑）
+  → simhei.ttf（黑体）→ Deng.ttf（等线）→ simsun.ttc（宋体）
+想换字体：把一个中文字体改名为 cjk.ttf 放到 ALVR Dashboard.exe 同目录。
+
+五、技术实现
+------------
+源码基于官方 v20.14.1 编译，改动集中在：
+· alvr/gui_common/src/fonts.rs      新增：中文字体回退加载
+· alvr/gui_common/src/i18n.rs       新增：翻译查表（精确匹配，查不到回退原文）
+· alvr/gui_common/src/i18n/i18n_data.rs
+                                    生成的 436 条中英对照表
+· alvr/dashboard/src/dashboard/…    界面文案内联为中文
+· alvr/dashboard/src/dashboard/mod.rs
+                                    新增「安装路径含非 ASCII 字符」启动警告
+· alvr/launcher/src/*.rs            启动器文案内联为中文
+· 构建命令：cargo build --release -p alvr_dashboard -p alvr_launcher
+
+六、本机安装位置
+----------------
+已经装好并注册到 SteamVR 的位置：
+
+    C:\ALVR-CN\streamer\ALVR Dashboard.exe     ← 面板
+    C:\ALVR-CN\launcher\ALVR Launcher.exe      ← 启动器
+
+SteamVR 的驱动注册表（openvrpaths.vrpath）里现在只有：
+    C:\ALVR-CN\streamer
+
+七、崩溃排查
+------------
+症状 1：一戴头显 SteamVR 就弹「SteamVR 出现重大错误」，
+        同时弹「ALVR error: Error on parsing session config … syntax error at line 1 near:」。
+
+  ① 路径里有中文（见本文第零节）—— 最常见的坑。
+  ② session.json 不存在。驱动启动时必须能读到它（分辨率、刷新率、码率都在里面）。
+     本包已附带一份可用的 session.json，别删。
+     误删了补救：打开面板 → 随便改一个设置 → 关闭面板，会重新生成。
+  ③ 同时注册了两份 ALVR 驱动。SteamVR 会加载两个 driver_alvr_server.dll，
+     两个 ALVR 抢同一个 HMD，必然致命错误。
+
+  查看当前注册了哪些驱动：
+    "C:\Program Files (x86)\Steam\steamapps\common\SteamVR\bin\win64\vrpathreg.exe" show
+  删掉多余的一份（只留一行 alvr_server）：
+    "C:\Program Files (x86)\Steam\steamapps\common\SteamVR\bin\win64\vrpathreg.exe" removedriver "多余目录的完整路径"
+  注册本目录：
+    "C:\Program Files (x86)\Steam\steamapps\common\SteamVR\bin\win64\vrpathreg.exe" adddriver "C:\ALVR-CN\streamer"
+
+症状 2：面板里设置改了，但头显画面没变化。
+       面板和驱动不是同一个目录（面板写 A 目录的 session.json，驱动读 B 目录的）。
+       把 steamvr 重启一次，或在「安装」页确认驱动列表指向的是当前目录。
+
+正确操作顺序：
+   打开 ALVR Dashboard
+   → 左下角显示「SteamVR: 未连接」
+   → 点面板里的「启动 SteamVR」
+   → 戴头显，在「设备」页点「信任」
+
+八、注意
+--------
+· 本版只替换界面，串流协议、驱动、编解码与官方 v20.14.1 完全一致，
+  可以和官方客户端 APK、官方驱动混用。
+· ALVR 出新版本时升级会覆盖 exe，中文会丢失。
+· 想回滚英文版：把官方原版 ALVR Dashboard.exe 覆盖回来即可。

@@ -1,0 +1,25 @@
+# 构建产物
+target/
+build/
+dist/
+*.pdb
+*.zip
+
+# 发布包里的可执行文件不进仓库（见 Releases）
+*.exe
+*.dll
+*.lib
+*.exp
+
+# 运行时生成
+session.json
+crash_log.txt
+*.log
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -1,0 +1,2570 @@
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/build.rs src/ALVR-20.14.1/alvr/dashboard/build.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/build.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/build.rs	2026-11-04 23:19:21.055854000 +0800
+@@ -2,7 +2,13 @@
+ fn main() {
+     let mut resource = winres::WindowsResource::new();
+     resource.set_icon("resources/dashboard.ico");
+-    resource.compile().unwrap();
++    if let Ok(sdk) = std::env::var("WindowsSdkDir") {
++        resource.set_toolkit_path(&sdk);
++    }
++    // The icon is cosmetic; never fail the build over it.
++    if resource.compile().is_err() {
++        println!("cargo:warning=skipping Windows resource compilation (rc.exe not found)");
++    }
+ }
+ 
+ #[cfg(not(windows))]
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/about.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/about.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/about.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/about.rs	2026-11-04 23:06:54.562644400 +0800
+@@ -3,20 +3,20 @@
+ use eframe::egui::{self, Frame, RichText, ScrollArea, Ui};
+ 
+ pub fn about_tab_ui(ui: &mut Ui) {
+-    ui.label(RichText::new(format!("ALVR streamer v{}", *ALVR_VERSION)).size(30.0));
++    ui.label(RichText::new(format!("ALVR 串流端 v{}", *ALVR_VERSION)).size(30.0));
+     ui.add_space(10.0);
+-    ui.hyperlink_to("Visit us on GitHub", "https://github.com/alvr-org/ALVR");
+-    ui.hyperlink_to("Join us on Discord", "https://discord.gg/ALVR");
++    ui.hyperlink_to("访问我们的 GitHub", "https://github.com/alvr-org/ALVR");
++    ui.hyperlink_to("加入我们的 Discord", "https://discord.gg/ALVR");
+     ui.hyperlink_to(
+-        "Latest release",
++        "最新版本",
+         "https://github.com/alvr-org/ALVR/releases/latest",
+     );
+     ui.hyperlink_to(
+-        "Donate to ALVR on Open Collective",
++        "在 Open Collective 上赞助 ALVR",
+         "https://opencollective.com/alvr",
+     );
+     ui.add_space(10.0);
+-    ui.label("License:");
++    ui.label("许可证：");
+     Frame::group(ui.style())
+         .fill(theme::DARKER_BG)
+         .inner_margin(egui::vec2(15.0, 12.0))
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/debug.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/debug.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/debug.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/debug.rs	2026-11-04 23:06:54.566844400 +0800
+@@ -5,24 +5,24 @@
+     let mut request = None;
+ 
+     ui.label(
+-        "Recording from ALVR using the buttons below is not suitable for capturing gameplay.
+-For that, use other means of recording, for example through headset or desktop VR output.",
++        "用下面的按钮录制 ALVR 画面不适合用来捕获游戏过程。
++如需录制游戏，请使用其他方式，例如通过头显或桌面 VR 输出录制。",
+     );
+ 
+     ui.columns(4, |ui| {
+-        if ui[0].button("Capture frame").clicked() {
++        if ui[0].button("截取一帧").clicked() {
+             request = Some(ServerRequest::CaptureFrame);
+         }
+ 
+-        if ui[1].button("Insert IDR").clicked() {
++        if ui[1].button("插入 IDR").clicked() {
+             request = Some(ServerRequest::InsertIdr);
+         }
+ 
+-        if ui[2].button("Start recording").clicked() {
++        if ui[2].button("开始录制").clicked() {
+             request = Some(ServerRequest::StartRecording);
+         }
+ 
+-        if ui[3].button("Stop recording").clicked() {
++        if ui[3].button("停止录制").clicked() {
+             request = Some(ServerRequest::StopRecording);
+         }
+     });
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/devices.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/devices.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/devices.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/devices.rs	2026-11-04 23:07:58.387933600 +0800
+@@ -65,8 +65,8 @@
+                             ui.add_space(10.0);
+                             ui.heading(
+                                 RichText::new(format!(
+-                                    "ALVR requires running SteamVR! {}",
+-                                    "Devices will not be discovered or connected"
++                                    "ALVR 需要 SteamVR 正在运行！{}",
++                                    "否则设备不会被发现或连接"
+                                 ))
+                                 .color(Color32::BLACK)
+                                 .size(16.0),
+@@ -75,7 +75,7 @@
+ 
+                         #[cfg(not(target_arch = "wasm32"))]
+                         ui.with_layout(Layout::right_to_left(eframe::emath::Align::Center), |ui| {
+-                            if ui.button("Launch SteamVR").clicked() {
++                            if ui.button("启动 SteamVR").clicked() {
+                                 crate::steamvr_launcher::LAUNCHER.lock().launch_steamvr();
+                             }
+                         });
+@@ -121,7 +121,7 @@
+         });
+ 
+         if let Some(mut state) = self.edit_popup_state.take() {
+-            Window::new("Edit connection")
++            Window::new("编辑连接")
+                 .anchor(Align2::CENTER_CENTER, (0.0, 0.0))
+                 .resizable(false)
+                 .collapsible(false)
+@@ -131,7 +131,7 @@
+                     ui.columns(2, |ui| {
+                         ui[0].horizontal(|ui| {
+                             ui.add_space(5.0);
+-                            ui.label("Hostname:");
++                            ui.label("主机名：");
+                         });
+                         ui[1].add_enabled(
+                             state.new_devices,
+@@ -140,22 +140,22 @@
+ 
+                         ui[0].horizontal(|ui| {
+                             ui.add_space(5.0);
+-                            ui.label("IP Addresses:");
++                            ui.label("IP 地址：");
+                         });
+                         for address in &mut state.ips {
+                             ui[1].text_edit_singleline(address);
+                         }
+-                        if ui[1].button("Add new").clicked() {
++                        if ui[1].button("新增").clicked() {
+                             state.ips.push("192.168.X.X".into());
+                         }
+                     });
+ 
+                     ui.columns(2, |ui| {
+-                        if ui[0].button("Cancel").clicked() {
++                        if ui[0].button("取消").clicked() {
+                             return;
+                         }
+ 
+-                        if ui[1].button("Save").clicked() {
++                        if ui[1].button("保存").clicked() {
+                             let manual_ips =
+                                 state.ips.iter().filter_map(|s| s.parse().ok()).collect();
+ 
+@@ -199,7 +199,7 @@
+                 .num_columns(2)
+                 .spacing(egui::vec2(8.0, 8.0))
+                 .show(ui, |ui| {
+-                    ui.heading("Wired Connection");
++                    ui.heading("有线连接");
+                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                         let mut wired = maybe_client.is_some();
+                         if alvr_gui_common::switch(ui, &mut wired).changed() {
+@@ -223,7 +223,7 @@
+ 
+                     if let Some(progress) = adb_download_progress.filter(|p| *p < 1.0) {
+                         ui.horizontal(|ui| {
+-                            ui.label("ADB download progress");
++                            ui.label("ADB 下载进度");
+                         });
+                         ui.horizontal(|ui| {
+                             ui.add(ProgressBar::new(progress).animate(true).show_percentage());
+@@ -257,7 +257,7 @@
+                 ui.add_space(5.0);
+                 ui.horizontal(|ui| {
+                     ui.add_space(10.0);
+-                    ui.heading("New Wireless Devices");
++                    ui.heading("新的无线设备");
+ 
+                     // Extend to the right
+                     ui.with_layout(Layout::right_to_left(Align::Center), |_| ());
+@@ -281,7 +281,7 @@
+                                     ui.label(hostname);
+                                 });
+                                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+-                                    if ui.button("Trust").clicked() {
++                                    if ui.button("信任").clicked() {
+                                         request = Some(ServerRequest::UpdateClientList {
+                                             hostname: hostname.clone(),
+                                             action: ClientListAction::Trust,
+@@ -310,11 +310,11 @@
+             Grid::new(0).num_columns(2).show(ui, |ui| {
+                 ui.horizontal(|ui| {
+                     ui.add_space(10.0);
+-                    ui.heading("Trusted Wireless Devices");
++                    ui.heading("已信任的无线设备");
+                 });
+ 
+                 ui.with_layout(Layout::right_to_left(eframe::emath::Align::Center), |ui| {
+-                    if ui.button("Add device manually").clicked() {
++                    if ui.button("手动添加设备").clicked() {
+                         *edit_popup_state = Some(EditPopupState {
+                             hostname: "XXXX.client.local.".into(),
+                             new_devices: true,
+@@ -345,16 +345,16 @@
+                                 ui.label(format!(
+                                     "{hostname}: {}",
+                                     data.current_ip
+-                                        .map_or_else(|| "Unknown IP".into(), |ip| ip.to_string()),
++                                        .map_or_else(|| "未知 IP".into(), |ip| ip.to_string()),
+                                 ));
+                                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+-                                    if ui.button("Remove").clicked() {
++                                    if ui.button("移除").clicked() {
+                                         request = Some(ServerRequest::UpdateClientList {
+                                             hostname: hostname.clone(),
+                                             action: ClientListAction::RemoveEntry,
+                                         });
+                                     }
+-                                    if ui.button("Edit").clicked() {
++                                    if ui.button("编辑").clicked() {
+                                         *edit_popup_state = Some(EditPopupState {
+                                             new_devices: false,
+                                             hostname: hostname.to_owned(),
+@@ -376,12 +376,12 @@
+ 
+ fn connection_label(ui: &mut Ui, connection_state: &ConnectionState) {
+     match connection_state {
+-        ConnectionState::Disconnected => ui.colored_label(Color32::GRAY, "Disconnected"),
+-        ConnectionState::Connecting => ui.colored_label(log_colors::WARNING_LIGHT, "Connecting"),
+-        ConnectionState::Connected => ui.colored_label(theme::OK_GREEN, "Connected"),
+-        ConnectionState::Streaming => ui.colored_label(theme::OK_GREEN, "Streaming"),
++        ConnectionState::Disconnected => ui.colored_label(Color32::GRAY, "未连接"),
++        ConnectionState::Connecting => ui.colored_label(log_colors::WARNING_LIGHT, "连接中"),
++        ConnectionState::Connected => ui.colored_label(theme::OK_GREEN, "已连接"),
++        ConnectionState::Streaming => ui.colored_label(theme::OK_GREEN, "串流中"),
+         ConnectionState::Disconnecting => {
+-            ui.colored_label(log_colors::WARNING_LIGHT, "Disconnecting")
++            ui.colored_label(log_colors::WARNING_LIGHT, "断开中")
+         }
+     };
+ }
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/installation.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/installation.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/installation.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/installation.rs	2026-11-04 23:06:54.571582800 +0800
+@@ -46,16 +46,16 @@
+         }
+ 
+         ui.vertical_centered_justified(|ui| {
+-            if ui.button("Run setup wizard").clicked() {
++            if ui.button("运行设置向导").clicked() {
+                 requests.push(InstallationTabRequest::OpenSetupWizard);
+             }
+             ui.columns(2, |ui| {
+-                if ui[0].button("Add firewall rules").clicked() {
++                if ui[0].button("添加防火墙规则").clicked() {
+                     requests.push(InstallationTabRequest::ServerRequest(
+                         ServerRequest::FirewallRules(FirewallRulesAction::Add),
+                     ));
+                 }
+-                if ui[1].button("Remove firewall rules").clicked() {
++                if ui[1].button("移除防火墙规则").clicked() {
+                     requests.push(InstallationTabRequest::ServerRequest(
+                         ServerRequest::FirewallRules(FirewallRulesAction::Remove),
+                     ));
+@@ -67,7 +67,7 @@
+                 .show(ui, |ui| {
+                     ui.vertical_centered(|ui| {
+                         ui.add_space(5.0);
+-                        ui.label(RichText::new("Registered drivers").size(18.0));
++                        ui.label(RichText::new("已注册的驱动").size(18.0));
+                     });
+ 
+                     Grid::new(0).num_columns(2).show(ui, |ui| {
+@@ -77,7 +77,7 @@
+                                 ui.label(driver_path.to_string_lossy());
+                             });
+                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+-                                if ui.button("Remove").clicked() {
++                                if ui.button("移除").clicked() {
+                                     requests.push(InstallationTabRequest::ServerRequest(
+                                         ServerRequest::UnregisterDriver(driver_path.clone()),
+                                     ));
+@@ -87,7 +87,7 @@
+                         }
+                     });
+ 
+-                    if ui.button("Register ALVR driver").clicked() {
++                    if ui.button("注册 ALVR 驱动").clicked() {
+                         requests.push(InstallationTabRequest::ServerRequest(
+                             ServerRequest::RegisterAlvrDriver,
+                         ));
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/logs.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/logs.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/logs.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/logs.rs	2026-11-04 23:06:54.572699900 +0800
+@@ -74,7 +74,7 @@
+ 
+     pub fn ui(&self, ui: &mut Ui) {
+         ui.horizontal(|ui| {
+-            if ui.button("Copy all").clicked() {
++            if ui.button("复制全部").clicked() {
+                 ui.output_mut(|out| {
+                     out.commands
+                         .push(OutputCommand::CopyText(self.entries.iter().fold(
+@@ -88,7 +88,7 @@
+                         )));
+                 })
+             }
+-            if ui.button("Open logs directory").clicked() {
++            if ui.button("打开日志目录").clicked() {
+                 let log_dir = crate::get_filesystem_layout().log_dir;
+                 ui.ctx().open_url(OpenUrl::same_tab(format!(
+                     "file://{}",
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/new_version_popup.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/new_version_popup.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/new_version_popup.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/new_version_popup.rs	2026-11-04 23:06:54.577893200 +0800
+@@ -35,11 +35,11 @@
+ 
+     pub fn ui(&self, context: &Context, shutdown_alvr_cb: impl Fn()) -> Option<CloseAction> {
+         let no_remind_button =
+-            ModalButton::Custom("Don't remind me again for this version".to_string());
++            ModalButton::Custom("此版本不再提醒".to_string());
+ 
+         let result = alvr_gui_common::modal(
+             context,
+-            "New ALVR version available",
++            "ALVR 有新版本可用",
+             Some(|ui: &mut Ui| {
+                 ui.horizontal(|ui| {
+                     ui.add_space(10.0);
+@@ -51,15 +51,15 @@
+                             ui.spacing_mut().item_spacing.x = 5.0;
+                             ui.style_mut().spacing.button_padding = egui::vec2(10.0, 4.0);
+ 
+-                            ui.heading("You can download this version using the launcher:");
++                            ui.heading("你可以使用启动器下载此版本：");
+ 
+                             if let Some(path) = &self.launcher_path {
+-                                if ui.button("Open Launcher").clicked()
++                                if ui.button("打开启动器").clicked()
+                                     && Command::new(path).spawn().is_ok()
+                                 {
+                                     shutdown_alvr_cb();
+                                 }
+-                            } else if ui.button("Download Launcher").clicked() {
++                            } else if ui.button("下载启动器").clicked() {
+                                 let base_url =
+                                     "https://github.com/alvr-org/ALVR/releases/latest/download/";
+                                 let file = if cfg!(windows) {
+@@ -76,7 +76,7 @@
+ 
+                         ui.label(&self.message);
+                         ui.hyperlink_to(
+-                            "Releases page",
++                            "发布页面",
+                             "https://github.com/alvr-org/ALVR/releases",
+                         );
+                     });
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/notifications.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/notifications.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/notifications.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/notifications.rs	2026-11-04 23:08:27.573249100 +0800
+@@ -15,37 +15,37 @@
+ use std::time::Instant;
+ 
+ const TIMEOUT: Duration = Duration::from_secs(5);
+-const NO_NOTIFICATIONS_MESSAGE: &str = "No new notifications";
++const NO_NOTIFICATIONS_MESSAGE: &str = "暂无新通知";
+ const NOTIFICATION_TIPS: &[&str] = &[
+     // The following tips are ordered roughtly in the order settings appear
+-    r#"If you started having crashes after changing some settings, reset ALVR by re-running "Run setup wizard" from the "Installation" tab and clicking "Reset settings"."#,
+-    r#"Some settings are hidden by default. Click the "Expand" button next to some settings to expand the submenus."#,
+-    r#"It's highly advisable to keep audio settings as default in ALVR and modify the default audio device in the taskbar tray."#,
+-    r#"Increasing "Maximum buffering" may reduce stutters at the cost of more latency."#,
+-    r#"Sometimes switching between h264 and HEVC codecs is necessary on certain GPUs to fix crashing or fallback to software encoding."#,
+-    r#"If you're using an NVIDIA GPU, it's best to use high-bitrate H264; if you're using an AMD GPU, HEVC might look better."#,
+-    r#"If you experience "white snow" flickering, reduce the resolution to "Low" and disable "Foveated encoding"."#,
+-    r#"Increasing "Color correction"->"Sharpness" may improve the perceived image quality."#,
+-    r#"If you have problems syncing external controllers or trackers to ALVR tracking space, add one element to "Extra openvr props", then set a custom "Tracking system name"."#,
+-    r#"To change the visual appearance of controllers, set "Headset"->"Controllers"->"Emulation mode"."#,
+-    r#"ALVR supports custom button bindings! If you need help, please ask us on our Discord server."#,
+-    r#"ALVR supports hand tracking gestures ("Presets"->"Hand tracking interaction"->"ALVR Bindings"). Check out wiki how to use them properly: https://github.com/alvr-org/ALVR/wiki/Hand-tracking-controller-bindings."#,
+-    r#"If hand tracking gestures are annoying, you can disable them in "Controllers"->"Gestures". Alternatively, you can enable "Gestures"->"Only touch"."#,
+-    r#"You can fine-tune the controllers responsiveness with "Controllers"->"Prediction"."#,
+-    r#"If the visual controller/hand models do not match the physical controller, you can tweak the offset in "Headset"->"Controllers"->"Left controller position/rotation offset" (affects both controllers)."#,
+-    r#"When using external trackers or controllers, you should set both "Position/Rotation recentering mode" to "Disabled"."#,
+-    r#"You can enable tilt mode. Set "Position recentering mode" to "Local" and "Rotation recentering mode" to "Tilted"."#,
+-    r#"If you often experience image glitching, you can trade that with stutter frames using "Avoid video glitching"."#,
+-    r#"You can run custom commands/programs at headset connection/disconnection using the "On connect/disconnect script"."#,
+-    r#"In case you want to report a bug, to get a log file, enable "Extra"->"Logging"->"Log to disk". The log will be inside "session_log.txt"."#,
+-    r#"For hacking purposes, you can enable "Log tracking", "Log button presses" and "Log haptics". You can get the data using a websocket at ws://localhost:8082/api/events"#,
+-    r#"In case you want to report a bug and share your log, you should enable "Extra"->"Logging"->"Prefer backtrace"."#,
+-    r#"You can quickly cycle through tips like this one by toggling "Show notification tip""#,
+-    r#"If you want to use body trackers or other SteamVR drivers together with ALVR, set "Driver launch action" to "Unregister ALVR at shutdown""#,
+-    r#"It's handy to enable "Extra"->"Steamvr Launcher"->"Open and close SteamVR with dashboard""#,
+-    r#"If you want to share a video recording for reporting a bug, you can enable "Extra"->"Capture"->"Rolling video files" to limit the file size of the upload"#,
++    r#"如果修改某些设置后开始出现崩溃，请到“安装”标签页重新运行“运行设置向导”，再点击“重置设置”来重置 ALVR。"#,
++    r#"部分设置默认是隐藏的。点击设置旁边的“展开”按钮即可展开子菜单。"#,
++    r#"强烈建议保持 ALVR 的音频设置为默认，改为在任务栏托盘中修改默认音频设备。"#,
++    r#"提高“最大缓冲”可以减少卡顿，代价是延迟增加。"#,
++    r#"在某些显卡上，有时需要在 h264 与 HEVC 之间切换，才能解决崩溃或回退到软件编码的问题。"#,
++    r#"使用 NVIDIA 显卡时最好用高码率 H264；使用 AMD 显卡时 HEVC 画质可能更好。"#,
++    r#"如果出现“雪花”闪烁，请把分辨率降到“低”并关闭“注视点编码”。"#,
++    r#"提高“色彩校正”→“锐化”可以提升主观画质。"#,
++    r#"如果外部手柄或追踪器无法同步到 ALVR 追踪空间，请在“额外 OpenVR 属性”中添加一个元素，然后设置自定义的“追踪系统名称”。"#,
++    r#"想改变手柄的外观，请设置“头显”→“手柄”→“模拟模式”。"#,
++    r#"ALVR 支持自定义按键绑定！需要帮助可以到我们的 Discord 服务器提问。"#,
++    r#"ALVR 支持手部追踪手势（“预设”→“手部追踪交互”→“ALVR 按键绑定”）。正确用法请查看 wiki：https://github.com/alvr-org/ALVR/wiki/Hand-tracking-controller-bindings 。"#,
++    r#"如果手部追踪手势太扰人，可以在“手柄”→“手势”中关闭。也可以启用“手势”→“仅触摸”。"#,
++    r#"可以在“手柄”→“预测”中微调手柄的响应速度。"#,
++    r#"如果虚拟手柄/手部模型与实体手柄对不上，可以在“头显”→“手柄”→“左手柄位置/旋转偏移”中调整（会同时影响两只手柄）。"#,
++    r#"使用外部追踪器或手柄时，应把“位置重定位模式”和“旋转重定位模式”都设为“禁用”。"#,
++    r#"可以启用倾斜模式：把“位置重定位模式”设为“本地”，“旋转重定位模式”设为“倾斜”。"#,
++    r#"如果经常出现画面错乱，可以用“避免画面撕裂”来换取卡顿帧。"#,
++    r#"可以用“连接时/断开时脚本”在头显连接或断开时运行自定义命令或程序。"#,
++    r#"如需报告 bug 并获取日志文件，请启用“额外”→“日志”→“写入磁盘日志”。日志会保存在 session_log.txt 中。"#,
++    r#"出于研究目的，可以启用“记录追踪数据”“记录按键”“记录触觉反馈”。数据可通过 ws://localhost:8082/api/events 的 websocket 获取"#,
++    r#"如需报告 bug 并分享日志，应启用“额外”→“日志”→“优先使用 backtrace”。"#,
++    r#"切换“显示通知提示”即可快速轮换查看这类提示"#,
++    r#"如果想同时使用身体追踪器或其他 SteamVR 驱动，把“驱动启动操作”设为“关闭时注销 ALVR”"#,
++    r#"启用“额外”→“SteamVR 启动器”→“随面板一起打开和关闭 SteamVR”会很方便"#,
++    r#"如果想分享录像来报告 bug，可以启用“额外”→“捕获”→“分段录制视频”来限制上传文件的大小"#,
+     // Miscellaneous
+-    r#"If your headset does not appear in the device list, it might be in a different subnet. Try "Add device manually" with IP shown from inside device."#,
++    r#"如果头显没有出现在设备列表中，它可能处于不同子网。请尝试“手动添加设备”，填入从头显内部看到的 IP。"#,
+ ];
+ 
+ pub struct NotificationBar {
+@@ -76,7 +76,7 @@
+             if self.tip_message.is_none() {
+                 self.tip_message = NOTIFICATION_TIPS
+                     .choose(&mut rand::rng())
+-                    .map(|s| format!("Tip: {s}"));
++                    .map(|s| format!("提示：{s}"));
+             }
+         } else {
+             self.tip_message = None;
+@@ -138,10 +138,10 @@
+         bottom_bar.show(context, |ui| {
+             ui.with_layout(Layout::right_to_left(alignment), |ui| {
+                 if !self.expanded {
+-                    if ui.small_button("Expand").clicked() {
++                    if ui.small_button("展开").clicked() {
+                         self.expanded = true;
+                     }
+-                } else if ui.button("Reduce").clicked() {
++                } else if ui.button("收起").clicked() {
+                     self.expanded = false;
+                 }
+                 ui.with_layout(Layout::left_to_right(alignment), |ui| {
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings.rs	2026-11-04 23:06:54.578406600 +0800
+@@ -131,7 +131,7 @@
+                         ui.selectable_value(
+                             &mut self.selected_top_tab_id,
+                             "presets".into(),
+-                            RichText::new("Presets").raised().size(15.0),
++                            RichText::new("预设").raised().size(15.0),
+                         );
+                         for entry in &mut self.top_level_entries {
+                             ui.selectable_value(
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/boolean.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/boolean.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/boolean.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/boolean.rs	2026-11-04 23:06:24.292169300 +0800
+@@ -14,7 +14,7 @@
+ 
+ impl Control {
+     pub fn new(nesting_info: NestingInfo, default: bool) -> Self {
+-        let default_string = if default { "ON".into() } else { "OFF".into() };
++        let default_string = if default { "开".into() } else { "关".into() };
+ 
+         Self {
+             nesting_info,
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/choice.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/choice.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/choice.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/choice.rs	2026-11-04 23:06:24.280132300 +0800
+@@ -10,7 +10,7 @@
+ use std::collections::HashMap;
+ 
+ fn get_display_name(id: &str, strings: &HashMap<String, String>) -> String {
+-    strings.get("display_name").cloned().unwrap_or_else(|| {
++    let english = strings.get("display_name").cloned().unwrap_or_else(|| {
+         let mut chars = id.chars();
+ 
+         let mut new_chars = vec![chars.next().unwrap()];
+@@ -25,7 +25,9 @@
+         }
+ 
+         new_chars.into_iter().collect::<String>()
+-    })
++    });
++
++    alvr_gui_common::i18n::tr(&english)
+ }
+ 
+ pub struct Control {
+@@ -148,7 +150,7 @@
+                     self.variant_labels.len() + 1,
+                     |idx| {
+                         if idx == 0 {
+-                            "Preset not applied".into()
++                            "预设未应用".into()
+                         } else {
+                             self.variant_labels[idx - 1].display.clone()
+                         }
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/collapsible.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/collapsible.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/collapsible.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/collapsible.rs	2026-11-04 23:06:24.281671900 +0800
+@@ -13,8 +13,8 @@
+         unreachable!()
+     };
+ 
+-    if (*state_mut && ui.small_button("Expand").clicked())
+-        || (!*state_mut && ui.small_button("Collapse").clicked())
++    if (*state_mut && ui.small_button("展开").clicked())
++        || (!*state_mut && ui.small_button("收起").clicked())
+     {
+         *state_mut = !*state_mut;
+         *request = super::get_single_value(
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/dictionary.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/dictionary.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/dictionary.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/dictionary.rs	2026-11-04 23:06:24.283246500 +0800
+@@ -72,7 +72,7 @@
+                     &mut request,
+                 );
+ 
+-                if reset::reset_button(ui, true, "default list").clicked() {
++                if reset::reset_button(ui, true, "默认列表").clicked() {
+                     request = get_content_request(&self.nesting_info, self.default.clone())
+                 }
+ 
+@@ -180,7 +180,7 @@
+             }
+ 
+             ui.label(" ");
+-            if ui.button("Add entry").clicked() {
++            if ui.button("添加条目").clicked() {
+                 let mut session_content =
+                     session_fragment["content"].as_array_mut().unwrap().clone();
+                 session_content.push(json::Value::Array(vec![
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/mod.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/mod.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/mod.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/mod.rs	2026-11-04 23:06:24.283769800 +0800
+@@ -44,11 +44,18 @@
+ }
+ 
+ pub fn get_display_name(id: &str, strings: &HashMap<String, String>) -> String {
+-    strings.get("display_name").cloned().unwrap_or_else(|| {
++    let english = strings.get("display_name").cloned().unwrap_or_else(|| {
+         let mut chars = id.chars();
+         chars.next().unwrap().to_uppercase().collect::<String>()
+             + chars.as_str().replace('_', " ").as_str()
+-    })
++    });
++
++    alvr_gui_common::i18n::tr(&english)
++}
++
++/// Translates a schema string (help, notice, ...) coming straight from the settings schema.
++pub fn tr_schema_string(text: &str) -> String {
++    alvr_gui_common::i18n::tr(text)
+ }
+ 
+ pub fn f64_eq(f1: f64, f2: f64) -> bool {
+@@ -172,7 +179,7 @@
+             Self::Dictionary(control) => control.ui(ui, session_fragment, allow_inline),
+             Self::None => {
+                 grid_flow_inline(ui, allow_inline);
+-                ui.add_enabled_ui(false, |ui| ui.label("Unimplemented UI"));
++                ui.add_enabled_ui(false, |ui| ui.label("未实现的控件"));
+ 
+                 None
+             }
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/notice.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/notice.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/notice.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/notice.rs	2026-11-04 23:25:42.844340900 +0800
+@@ -8,6 +8,9 @@
+     Frame::group(ui.style())
+         .fill(log_colors::WARNING_LIGHT)
+         .show(ui, |ui| {
++            // Constrain the width so long (Chinese) notices wrap instead of overflowing.
++            let max_width = (ui.ctx().screen_rect().width() * 0.6).max(320.0);
++            ui.set_max_width(max_width);
+             ui.add(Label::new(RichText::new(text).size(11.0).color(Color32::BLACK)).wrap());
+         });
+ }
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/optional.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/optional.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/optional.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/optional.rs	2026-11-04 23:06:24.286904700 +0800
+@@ -17,9 +17,9 @@
+ impl Control {
+     pub fn new(nesting_info: NestingInfo, default_set: bool, schema_content: SchemaNode) -> Self {
+         let default_string = if default_set {
+-            "Set".into()
++            "设置".into()
+         } else {
+-            "Default".into()
++            "默认".into()
+         };
+ 
+         let control = {
+@@ -58,8 +58,8 @@
+         }
+ 
+         ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+-            if ui.selectable_value(set_mut, false, "Default").clicked()
+-                || ui.selectable_value(set_mut, true, "Set").clicked()
++            if ui.selectable_value(set_mut, false, "默认").clicked()
++                || ui.selectable_value(set_mut, true, "设置").clicked()
+             {
+                 request = get_request(&self.nesting_info, *set_mut);
+             }
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/presets/builtin_schema.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/presets/builtin_schema.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/presets/builtin_schema.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/presets/builtin_schema.rs	2026-11-04 23:06:54.547895500 +0800
+@@ -34,18 +34,18 @@
+         name: "resolution".into(),
+         strings: [(
+             "help".into(),
+-            "Choosing too high resolution (commonly 'High (width: 5184)') may result in high latency or black screen.".into(),
++            "分辨率设得过高（通常是“高（宽度：5184）”）可能导致高延迟甚至黑屏。".into(),
+         )]
+         .into_iter()
+         .collect(),
+         flags: ["steamvr-restart".into()].into_iter().collect(),
+         options: [
+-            ("Very Low (width: 3072)", "1536"),
+-            ("Low (width: 3712)", "1856"),
+-            ("Medium (width: 4288)", "2144"),
+-            ("High (width: 5184)", "2592"),
+-            ("Ultra (width: 5632)", "2816"),
+-            ("Extreme (width: 6080)", "3040"),
++            ("极低（宽度：3072）", "1536"),
++            ("低（宽度：3712）", "1856"),
++            ("中（宽度：4288）", "2144"),
++            ("高（宽度：5184）", "2592"),
++            ("超高（宽度：5632）", "2816"),
++            ("极致（宽度：6080）", "3040"),
+         ]
+         .into_iter()
+         .map(|(key, value)| HigherOrderChoiceOption {
+@@ -81,7 +81,7 @@
+             content: None,
+         })
+         .collect(),
+-        default_option_display_name: "Medium (width: 4288)".into(),
++        default_option_display_name: "中（宽度：4288）".into(),
+         gui: ChoiceControlType::Dropdown,
+     })
+ }
+@@ -114,7 +114,7 @@
+         name: "codec_preset".into(),
+         strings: [(
+             "help".into(),
+-            "AV1 is only supported on newer gpus (AMD RX 7xxx+ , NVIDIA RTX 30xx+, Intel ARC)!"
++            "AV1 仅在较新的显卡上受支持（AMD RX 7xxx+、NVIDIA RTX 30xx+、Intel ARC）！"
+                 .into(),
+         )]
+         .into_iter()
+@@ -143,15 +143,15 @@
+         name: "encoder_preset".into(),
+         strings: [(
+             "help".into(),
+-            "Selecting a quality too high may result in stuttering or still image!".into(),
++            "画质档位选得过高可能导致卡顿或画面卡死！".into(),
+         )]
+         .into_iter()
+         .collect(),
+         flags: ["steamvr-restart".into()].into_iter().collect(),
+         options: [
+-            ("Speed", "Speed", "P1"),
+-            ("Balanced", "Balanced", "P3"),
+-            ("Quality", "Quality", "P5"),
++            ("速度", "Speed", "P1"),
++            ("均衡", "Balanced", "P3"),
++            ("画质", "Quality", "P5"),
+         ]
+         .into_iter()
+         .map(|(key, val_amd, val_nv)| HigherOrderChoiceOption {
+@@ -171,7 +171,7 @@
+             content: None,
+         })
+         .collect(),
+-        default_option_display_name: "Speed".into(),
++        default_option_display_name: "速度".into(),
+         gui: ChoiceControlType::ButtonGroup,
+     })
+ }
+@@ -182,19 +182,16 @@
+         name: "foveation_preset".into(),
+         strings: [(
+             "help".into(),
+-            "Foveation affects pixelation on the edges of \
+-            the screen and significantly reduces codec latency. 
+-It is not recommended to fully disable it, as it may cause \
+-shutterring and high encode/decode latency!"
++            "注视点编码会影响屏幕边缘的像素化程度，并能显著降低编解码延迟。\n不建议完全禁用它，否则可能导致卡顿以及编解码延迟过高！"
+                 .into(),
+         )]
+         .into_iter()
+         .collect(),
+         flags: ["steamvr-restart".into()].into_iter().collect(),
+         options: [
+-            ("Light", 0.80, 0.80, 8.0, 8.0),
+-            ("Medium", 0.66, 0.60, 6.0, 6.0),
+-            ("High", 0.45, 0.40, 4.0, 5.0),
++            ("轻度", 0.80, 0.80, 8.0, 8.0),
++            ("中等", 0.66, 0.60, 6.0, 6.0),
++            ("重度", 0.45, 0.40, 4.0, 5.0),
+         ]
+         .into_iter()
+         .map(
+@@ -225,7 +222,7 @@
+             },
+         )
+         .collect(),
+-        default_option_display_name: "High".into(),
++        default_option_display_name: "重度".into(),
+         gui: ChoiceControlType::ButtonGroup,
+     })
+ }
+@@ -238,7 +235,7 @@
+         flags: HashSet::new(),
+         options: [
+             HigherOrderChoiceOption {
+-                display_name: "Disabled".into(),
++                display_name: "禁用".into(),
+                 modifiers: vec![bool_modifier(
+                     "session_settings.audio.game_audio.enabled",
+                     false,
+@@ -246,7 +243,7 @@
+                 content: None,
+             },
+             HigherOrderChoiceOption {
+-                display_name: "Enabled".into(),
++                display_name: "启用".into(),
+                 modifiers: vec![bool_modifier(
+                     "session_settings.audio.game_audio.enabled",
+                     true,
+@@ -256,7 +253,7 @@
+         ]
+         .into_iter()
+         .collect(),
+-        default_option_display_name: "Enabled".into(),
++        default_option_display_name: "启用".into(),
+         gui: ChoiceControlType::ButtonGroup,
+     })
+ }
+@@ -269,7 +266,7 @@
+         flags: HashSet::new(),
+         options: [
+             HigherOrderChoiceOption {
+-                display_name: "Disabled".into(),
++                display_name: "禁用".into(),
+                 modifiers: vec![bool_modifier(
+                     "session_settings.audio.microphone.enabled",
+                     false,
+@@ -277,7 +274,7 @@
+                 content: None,
+             },
+             HigherOrderChoiceOption {
+-                display_name: "Enabled".into(),
++                display_name: "启用".into(),
+                 modifiers: vec![bool_modifier(
+                     "session_settings.audio.microphone.enabled",
+                     true,
+@@ -287,7 +284,7 @@
+         ]
+         .into_iter()
+         .collect(),
+-        default_option_display_name: "Enabled".into(),
++        default_option_display_name: "启用".into(),
+         gui: ChoiceControlType::ButtonGroup,
+     })
+ }
+@@ -298,7 +295,7 @@
+         name: "Headset speaker".into(),
+         strings: [(
+             "notice".into(),
+-            "You can change the default audio device from the system taskbar tray (bottom right)"
++            "你可以在系统任务栏托盘（右下角）中更改默认音频设备"
+                 .into(),
+         )]
+         .into_iter()
+@@ -306,7 +303,7 @@
+         flags: HashSet::new(),
+         options: vec![
+             HigherOrderChoiceOption {
+-                display_name: "Disabled".into(),
++                display_name: "禁用".into(),
+                 modifiers: vec![bool_modifier(
+                     "session_settings.audio.game_audio.enabled",
+                     false,
+@@ -314,7 +311,7 @@
+                 content: None,
+             },
+             HigherOrderChoiceOption {
+-                display_name: "System Default".to_owned(),
++                display_name: "系统默认".to_owned(),
+                 modifiers: vec![
+                     bool_modifier("session_settings.audio.game_audio.enabled", true),
+                     bool_modifier(
+@@ -327,7 +324,7 @@
+         ]
+         .into_iter()
+         .collect(),
+-        default_option_display_name: "System Default".into(),
++        default_option_display_name: "系统默认".into(),
+         gui: ChoiceControlType::ButtonGroup,
+     })
+ }
+@@ -335,7 +332,7 @@
+ #[cfg(not(target_os = "linux"))]
+ pub fn microphone_schema() -> PresetSchemaNode {
+     let mut microhone_options = vec![HigherOrderChoiceOption {
+-        display_name: "Disabled".to_owned(),
++        display_name: "禁用".to_owned(),
+         modifiers: vec![bool_modifier(
+             "session_settings.audio.microphone.enabled",
+             false,
+@@ -345,7 +342,7 @@
+ 
+     if cfg!(windows) {
+         for (key, display_name) in [
+-            ("Automatic", "Automatic"),
++            ("Automatic", "自动"),
+             ("VAC", "Virtual Audio Cable"),
+             ("VBCable", "VB Cable"),
+             ("VoiceMeeter", "VoiceMeeter"),
+@@ -371,15 +368,15 @@
+         strings: HashMap::new(),
+         flags: HashSet::new(),
+         options: microhone_options.into_iter().collect(),
+-        default_option_display_name: "Disabled".into(),
++        default_option_display_name: "禁用".into(),
+         gui: ChoiceControlType::Dropdown,
+     })
+ }
+ 
+ pub fn hand_tracking_interaction_schema() -> PresetSchemaNode {
+-    const HELP: &str = r"Disabled: hands cannot emulate buttons. Useful for using Joy-Cons or other non-native controllers.
+-SteamVR Input 2.0: create separate SteamVR devices for hand tracking.
+-ALVR bindings: use ALVR hand tracking button bindings. Check the wiki for help.
++    const HELP: &str = r"禁用：手部不能模拟按键。适合使用 Joy-Con 或其他非原生手柄的场景。
++SteamVR Input 2.0：为手部追踪创建独立的 SteamVR 设备。
++ALVR 按键绑定：使用 ALVR 的手部追踪按键绑定。使用方法请查看 wiki。
+ ";
+ 
+     const PREFIX: &str = "session_settings.headset.controllers.content";
+@@ -390,7 +387,7 @@
+         flags: ["steamvr-restart".into()].into_iter().collect(),
+         options: [
+             HigherOrderChoiceOption {
+-                display_name: "Disabled".into(),
++                display_name: "禁用".into(),
+                 modifiers: vec![
+                     bool_modifier("session_settings.headset.controllers.enabled", true),
+                     bool_modifier(
+@@ -421,7 +418,7 @@
+                 content: None,
+             },
+             HigherOrderChoiceOption {
+-                display_name: "ALVR bindings".into(),
++                display_name: "ALVR 按键绑定".into(),
+                 modifiers: vec![
+                     bool_modifier("session_settings.headset.controllers.enabled", true),
+                     bool_modifier(
+@@ -447,7 +444,7 @@
+         flags: HashSet::new(),
+         options: [
+             HigherOrderChoiceOption {
+-                display_name: "Disabled".into(),
++                display_name: "禁用".into(),
+                 modifiers: vec![bool_modifier(
+                     "session_settings.headset.face_tracking.enabled",
+                     false,
+@@ -479,7 +476,7 @@
+         ]
+         .into_iter()
+         .collect(),
+-        default_option_display_name: "Disabled".into(),
++        default_option_display_name: "禁用".into(),
+         gui: ChoiceControlType::ButtonGroup,
+     })
+ }
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/presets/higher_order_choice.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/presets/higher_order_choice.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/presets/higher_order_choice.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/presets/higher_order_choice.rs	2026-11-04 23:06:24.293761600 +0800
+@@ -25,8 +25,14 @@
+ impl Control {
+     pub fn new(schema: HigherOrderChoiceSchema) -> Self {
+         let name = components::get_display_name(&schema.name, &schema.strings);
+-        let help = schema.strings.get("help").cloned();
+-        let notice = schema.strings.get("notice").cloned();
++        let help = schema
++            .strings
++            .get("help")
++            .map(|s| alvr_gui_common::i18n::tr(s));
++        let notice = schema
++            .strings
++            .get("notice")
++            .map(|s| alvr_gui_common::i18n::tr(s));
+         let steamvr_restart_flag = schema.flags.contains("steamvr-restart");
+         let real_time_flag = schema.flags.contains("real-time");
+ 
+@@ -155,8 +161,8 @@
+                     ui,
+                     "steamvr_restart_tooltip",
+                     &format!(
+-                        "Changing this setting will make SteamVR restart!\n{}",
+-                        "Please save your in-game progress first"
++                        "修改此设置会重启 SteamVR！\n{}",
++                        "请先保存游戏进度"
+                     ),
+                 );
+             }
+@@ -166,7 +172,7 @@
+                 alvr_gui_common::tooltip(
+                     ui,
+                     "real_time_tooltip",
+-                    "This setting can be changed in real-time during streaming!",
++                    "此设置可以在串流过程中实时修改！",
+                 );
+             }
+         });
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/reset.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/reset.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/reset.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/reset.rs	2026-11-04 23:06:24.287437200 +0800
+@@ -8,7 +8,7 @@
+         ui.add_space(5.0);
+ 
+         ui.add_enabled(enabled, Button::new("⟲"))
+-            .on_hover_text(format!("Reset to {default_str}"))
++            .on_hover_text(format!("重置为 {default_str}"))
+     })
+     .inner
+ }
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/section.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/section.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/section.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/section.rs	2026-11-04 23:05:59.013067500 +0800
+@@ -40,8 +40,14 @@
+             .map(|entry| {
+                 let id = entry.name;
+                 let display = super::get_display_name(&id, &entry.strings);
+-                let help = entry.strings.get("help").cloned();
+-                let notice = entry.strings.get("notice").cloned();
++                let help = entry
++                    .strings
++                    .get("help")
++                    .map(|s| alvr_gui_common::i18n::tr(s));
++                let notice = entry
++                    .strings
++                    .get("notice")
++                    .map(|s| alvr_gui_common::i18n::tr(s));
+                 let hidden = entry.flags.contains("hidden");
+                 let steamvr_restart_flag = entry.flags.contains("steamvr-restart");
+                 let real_time_flag = entry.flags.contains("real-time");
+@@ -129,8 +135,8 @@
+                             ui,
+                             "steamvr_restart_tooltip",
+                             &format!(
+-                                "Changing this setting will make SteamVR restart!\n{}",
+-                                "Please save your in-game progress first"
++                                "修改此设置会重启 SteamVR！\n{}",
++                                "请先保存游戏进度"
+                             ),
+                         );
+                     }
+@@ -140,7 +146,7 @@
+                         alvr_gui_common::tooltip(
+                             ui,
+                             "real_time_tooltip",
+-                            "This setting can be changed in real-time during streaming!",
++                            "此设置可以在串流过程中实时修改！",
+                         );
+                     }
+                 });
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/switch.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/switch.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/switch.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/switch.rs	2026-11-04 23:06:24.290606300 +0800
+@@ -21,9 +21,9 @@
+         schema_content: SchemaNode,
+     ) -> Self {
+         let default_string = if default_enabled {
+-            "ON".into()
++            "开".into()
+         } else {
+-            "OFF".into()
++            "关".into()
+         };
+ 
+         let control = {
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/vector.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/vector.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/vector.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/settings_controls/vector.rs	2026-11-04 23:06:24.289037100 +0800
+@@ -57,7 +57,7 @@
+                     &mut request,
+                 );
+ 
+-                if reset::reset_button(ui, true, "default list").clicked() {
++                if reset::reset_button(ui, true, "默认列表").clicked() {
+                     request = get_content_request(&self.nesting_info, self.default.clone())
+                 }
+ 
+@@ -126,7 +126,7 @@
+             }
+ 
+             ui.label(" ");
+-            if ui.button("Add element").clicked() {
++            if ui.button("添加元素").clicked() {
+                 let mut session_content =
+                     session_fragment["content"].as_array_mut().unwrap().clone();
+                 session_content.push(session_fragment["element"].clone());
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/setup_wizard.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/setup_wizard.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/setup_wizard.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/setup_wizard.rs	2026-11-04 23:08:02.776085500 +0800
+@@ -72,7 +72,7 @@
+             ui.add_space(60.0);
+             ui.vertical(|ui| {
+                 ui.add_space(30.0);
+-                ui.heading(RichText::new("Welcome to ALVR").size(30.0));
++                ui.heading(RichText::new("欢迎使用 ALVR").size(30.0));
+                 ui.add_space(5.0);
+             });
+             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+@@ -86,16 +86,16 @@
+         match &self.page {
+             Page::Welcome => page_content(
+                 ui,
+-                "This setup wizard will help you setup ALVR.",
++                "本向导会帮助你完成 ALVR 的初始设置。",
+                 "",
+                 |_| (),
+             ),
+             Page::ResetSettings => page_content(
+                 ui,
+-                "Reset settings",
+-                "It is recommended to reset your settings everytime you update ALVR.",
++                "重置设置",
++                "建议每次更新 ALVR 后都重置一次设置。",
+                 |ui| {
+-                    if ui.button("Reset settings").clicked() {
++                    if ui.button("重置设置").clicked() {
+                         request = Some(SetupWizardRequest::ServerRequest(
+                             ServerRequest::UpdateSession(Box::default()),
+                         ));
+@@ -104,16 +104,16 @@
+             ),
+             Page::HardwareRequirements => page_content(
+                 ui,
+-                "Hardware requirements",
+-                r"ALVR requires a dedicated and recent graphics card. Low-end Intel integrated graphics may fail to work.
+-Make sure you have at least one output audio device.",
++                "硬件要求",
++                r"ALVR 需要一块较新的独立显卡。低端 Intel 核显可能无法正常工作。
++请确保至少有一个音频输出设备。",
+                 |_| (),
+             ),
+             Page::SoftwareRequirements => page_content(
+                 ui,
+-                "Software requirements",
++                "软件要求",
+                 if cfg!(windows) {
+-                    r"To stream the headset microphone on Windows you need to install Virtual Audio Cable, VB-Cable, Voicemeeter"
++                    r"要在 Windows 上串流头显麦克风，需要安装 Virtual Audio Cable、VB-Cable 或 Voicemeeter"
+                 } else if cfg!(target_os = "linux") {
+                     r"You need the PipeWire (0.3.49+ version) audio system to be able to stream audio and use microphone."
+                 } else {
+@@ -122,7 +122,7 @@
+                 #[allow(unused_variables)]
+                 |ui| {
+                     #[cfg(windows)]
+-                    if ui.button("Download Virtual Audio Cable (Lite)").clicked() {
++                    if ui.button("下载 Virtual Audio Cable（精简版）").clicked() {
+                         ui.ctx().open_url(eframe::egui::OpenUrl::same_tab(
+                             "https://software.muzychenko.net/freeware/vac470lite.zip",
+                         ));
+@@ -131,11 +131,11 @@
+             ),
+             Page::Firewall => page_content(
+                 ui,
+-                "Firewall",
+-                r"To communicate with the headset, some firewall rules need to be set.
+-This requires administrator rights!",
++                "防火墙",
++                r"要与头显通信，需要设置若干防火墙规则。
++此操作需要管理员权限！",
+                 |ui| {
+-                    if ui.button("Add firewall rules").clicked() {
++                    if ui.button("添加防火墙规则").clicked() {
+                         request = Some(SetupWizardRequest::ServerRequest(
+                             ServerRequest::FirewallRules(FirewallRulesAction::Add),
+                         ));
+@@ -144,14 +144,14 @@
+             ),
+             Page::Recommendations => page_content(
+                 ui,
+-                "Recommendations",
+-                r"ALVR supports multiple types of PC hardware and headsets but not all might work correctly with default settings. Please try tweaking different settings like resolution, bitrate, encoder and others if your ALVR experience is not optimal.",
++                "使用建议",
++                r"ALVR 支持多种 PC 硬件与头显，但并非所有组合都能在默认设置下正常工作。如果串流体验不理想，请尝试调整分辨率、码率、编码器等设置。",
+                 |_| (),
+             ),
+             Page::Finished => page_content(
+                 ui,
+-                "Finished",
+-                r#"You can always restart this setup wizard from the "Installation" tab on the left."#,
++                "完成",
++                r#"你随时可以在左侧的“安装”标签页中重新启动本向导。"#,
+                 |_| (),
+             ),
+         };
+@@ -161,14 +161,14 @@
+             ui.horizontal(|ui| {
+                 ui.add_space(15.0);
+                 if self.page == Page::Finished {
+-                    if ui.button("Finish").clicked() {
++                    if ui.button("完成").clicked() {
+                         request = Some(SetupWizardRequest::Close { finished: true });
+                     }
+-                } else if ui.button("Next").clicked() {
++                } else if ui.button("下一步").clicked() {
+                     self.page = index_to_page(self.page as usize + 1);
+                 }
+                 if ui
+-                    .add_visible(self.page != Page::Welcome, Button::new("Back"))
++                    .add_visible(self.page != Page::Welcome, Button::new("上一步"))
+                     .clicked()
+                 {
+                     self.page = index_to_page(self.page as usize - 1);
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/statistics.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/statistics.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/statistics.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/components/statistics.rs	2026-11-04 23:07:58.423087600 +0800
+@@ -54,8 +54,8 @@
+             });
+         } else {
+             ui.heading(
+-                "No statistics available. 
+-            Start SteamVR and connect to a device to gather statistics",
++                "暂无统计数据。
++            启动 SteamVR 并连接一台设备即可开始收集统计信息",
+             );
+         }
+ 
+@@ -137,7 +137,7 @@
+         self.draw_graph(
+             ui,
+             available_width,
+-            "Latency",
++            "延迟",
+             0.0..=(data.quantile(UPPER_QUANTILE) * 1.2) as f32 * 1000.0,
+             |painter, to_screen_trans| {
+                 for i in 0..GRAPH_HISTORY_SIZE {
+@@ -184,31 +184,31 @@
+ 
+                     label(
+                         ui,
+-                        "Motion to Photon Latency",
++                        "动作到成像延迟",
+                         stats.total_pipeline_latency_s,
+                         theme::FG,
+                     );
+-                    label(ui, "ALVR Latency", transmission_total_latency_s, theme::FG);
++                    label(ui, "ALVR 延迟", transmission_total_latency_s, theme::FG);
+                     label(
+                         ui,
+-                        "Client System (not ALVR latency)",
++                        "客户端系统（非 ALVR 延迟）",
+                         stats.vsync_queue_s,
+                         RENDER_EXTERNAL_LABEL,
+                     );
+                     label(
+                         ui,
+-                        "Client App Compositor",
++                        "客户端应用合成",
+                         stats.client_compositor_s,
+                         RENDER,
+                     );
+-                    label(ui, "Frame Buffering", stats.decoder_queue_s, IDLE);
+-                    label(ui, "Decode", stats.decoder_s, TRANSCODE);
+-                    label(ui, "Network", stats.network_s, NETWORK);
+-                    label(ui, "Encode", stats.encoder_s, TRANSCODE);
+-                    label(ui, "Streamer Compositor", stats.server_compositor_s, RENDER);
++                    label(ui, "帧缓冲", stats.decoder_queue_s, IDLE);
++                    label(ui, "解码", stats.decoder_s, TRANSCODE);
++                    label(ui, "网络", stats.network_s, NETWORK);
++                    label(ui, "编码", stats.encoder_s, TRANSCODE);
++                    label(ui, "串流端合成", stats.server_compositor_s, RENDER);
+                     label(
+                         ui,
+-                        "Game Render (not ALVR latency)",
++                        "游戏渲染（非 ALVR 延迟）",
+                         stats.game_time_s,
+                         RENDER_EXTERNAL_LABEL,
+                     );
+@@ -235,7 +235,7 @@
+         self.draw_graph(
+             ui,
+             available_width,
+-            "Framerate",
++            "帧率",
+             min as f32..=max as f32,
+             |painter, to_screen_trans| {
+                 let (server_fps_points, client_fps_points) = (0..GRAPH_HISTORY_SIZE)
+@@ -258,8 +258,8 @@
+                         ui.end_row();
+                     }
+ 
+-                    label(ui, "Server FPS", stats.server_fps, graph_colors::SERVER_FPS);
+-                    label(ui, "Client FPS", stats.client_fps, graph_colors::CLIENT_FPS);
++                    label(ui, "串流端 FPS", stats.server_fps, graph_colors::SERVER_FPS);
++                    label(ui, "客户端 FPS", stats.client_fps, graph_colors::CLIENT_FPS);
+                 });
+             },
+         );
+@@ -276,7 +276,7 @@
+         self.draw_graph(
+             ui,
+             available_width,
+-            "Bitrate and Throughput",
++            "码率与吞吐",
+             0.0..=(data.quantile(UPPER_QUANTILE) * 1.2) as f32 / 1e6,
+             |painter, to_screen_trans| {
+                 let mut scaled_calculated = Vec::with_capacity(GRAPH_HISTORY_SIZE);
+@@ -375,62 +375,62 @@
+ 
+                     maybe_label(
+                         ui,
+-                        "Initial calculated throughput",
++                        "初始计算吞吐",
+                         td.scaled_calculated_throughput_bps,
+                         graph_colors::INITIAL_CALCULATED_THROUGHPUT,
+                     );
+                     maybe_label(
+                         ui,
+-                        "Encoder latency limiter",
++                        "编码延迟限制",
+                         td.encoder_latency_limiter_bps,
+                         graph_colors::ENCODER_DECODER_LATENCY_LIMITER,
+                     );
+                     maybe_label(
+                         ui,
+-                        "Network latency limiter",
++                        "网络延迟限制",
+                         td.network_latency_limiter_bps,
+                         graph_colors::NETWORK_LATENCY_LIMITER,
+                     );
+                     maybe_label(
+                         ui,
+-                        "Decoder latency limiter",
++                        "解码延迟限制",
+                         td.decoder_latency_limiter_bps
+                             .filter(|l| *l < stats.throughput_bps),
+                         graph_colors::ENCODER_DECODER_LATENCY_LIMITER,
+                     );
+                     maybe_label(
+                         ui,
+-                        "Manual max throughput",
++                        "手动最大吞吐",
+                         td.manual_max_throughput_bps,
+                         graph_colors::MIN_MAX_LATENCY_THROUGHPUT,
+                     );
+                     maybe_label(
+                         ui,
+-                        "Manual min throughput",
++                        "手动最小吞吐",
+                         td.manual_min_throughput_bps,
+                         graph_colors::MIN_MAX_LATENCY_THROUGHPUT,
+                     );
+                     maybe_label(
+                         ui,
+-                        "Requested bitrate",
++                        "请求码率",
+                         Some(td.requested_bitrate_bps),
+                         graph_colors::REQUESTED_BITRATE,
+                     );
+                     maybe_label(
+                         ui,
+-                        "Recorded throughput",
++                        "记录吞吐",
+                         Some(stats.throughput_bps),
+                         graph_colors::RECORDED_THROUGHPUT,
+                     );
+                     maybe_label(
+                         ui,
+-                        "Recorded bitrate",
++                        "记录码率",
+                         Some(stats.bitrate_bps),
+                         graph_colors::RECORDED_BITRATE,
+                     );
+                 });
+ 
+-                ui.small("Note: throughput is the peak bitrate, packet_size/network_latency.");
++                ui.small("注意：吞吐指的是峰值码率，即 packet_size/network_latency。");
+             },
+         )
+     }
+@@ -439,50 +439,50 @@
+         ui.add_space(10.0);
+ 
+         ui.columns(2, |ui| {
+-            ui[0].label("Total packets:");
++            ui[0].label("数据包总数：");
+             ui[1].label(format!(
+-                "{} packets ({} packets/s)",
++                "{} 个包（{} 包/秒）",
+                 statistics.video_packets_total, statistics.video_packets_per_sec
+             ));
+ 
+-            ui[0].label("Total sent:");
++            ui[0].label("已发送：");
+             ui[1].label(format!("{} MB", statistics.video_mbytes_total));
+ 
+-            ui[0].label("Bitrate:");
++            ui[0].label("码率：");
+             ui[1].label(format!("{:.1} Mbps", statistics.video_mbits_per_sec));
+ 
+-            ui[0].label("Total latency:");
++            ui[0].label("总延迟：");
+             ui[1].label(format!("{:.0} ms", statistics.total_latency_ms));
+ 
+-            ui[0].label("Encoder latency:");
++            ui[0].label("编码延迟：");
+             ui[1].label(format!("{:.2} ms", statistics.encode_latency_ms));
+ 
+-            ui[0].label("Transport latency:");
++            ui[0].label("传输延迟：");
+             ui[1].label(format!("{:.2} ms", statistics.network_latency_ms));
+ 
+-            ui[0].label("Decoder latency:");
++            ui[0].label("解码延迟：");
+             ui[1].label(format!("{:.2} ms", statistics.decode_latency_ms));
+ 
+-            ui[0].label("Total packets lost:");
++            ui[0].label("丢包总数：");
+             ui[1].label(format!(
+-                "{} packets ({} packets/s)",
++                "{} 个包（{} 包/秒）",
+                 statistics.packets_lost_total, statistics.packets_lost_per_sec
+             ));
+ 
+-            ui[0].label("Client FPS:");
++            ui[0].label("客户端 FPS：");
+             ui[1].label(format!("{} FPS", statistics.client_fps));
+ 
+-            ui[0].label("Streamer FPS:");
++            ui[0].label("串流端 FPS：");
+             ui[1].label(format!("{} FPS", statistics.server_fps));
+ 
+-            ui[0].label("Headset battery");
++            ui[0].label("头显电量");
+             ui[1].label(format!(
+                 "{}% ({})",
+                 statistics.battery_hmd,
+                 if statistics.hmd_plugged {
+-                    "plugged"
++                    "已接入电源"
+                 } else {
+-                    "unplugged"
++                    "未接电源"
+                 }
+             ));
+         });
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/mod.rs src/ALVR-20.14.1/alvr/dashboard/src/dashboard/mod.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/dashboard/mod.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/dashboard/mod.rs	2026-11-04 23:57:21.870154900 +0800
+@@ -12,7 +12,10 @@
+ use alvr_gui_common::theme;
+ use alvr_packets::{PathValuePair, ServerRequest};
+ use alvr_session::SessionConfig;
+-use eframe::egui::{self, Align, CentralPanel, Frame, Layout, Margin, RichText, SidePanel, Stroke};
++use eframe::egui::{
++    self, Align, CentralPanel, Color32, Frame, Layout, Margin, RichText, SidePanel, Stroke,
++    TopBottomPanel,
++};
+ use std::{collections::BTreeMap, sync::Arc};
+ 
+ #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+@@ -60,14 +63,14 @@
+             server_restarting_condvar: Arc::new(Condvar::new()),
+             selected_tab: Tab::Devices,
+             tab_labels: [
+-                (Tab::Devices, "🔌  Devices"),
+-                (Tab::Statistics, "📈  Statistics"),
+-                (Tab::Settings, "⚙  Settings"),
++                (Tab::Devices, "🔌  设备"),
++                (Tab::Statistics, "📈  统计"),
++                (Tab::Settings, "⚙  设置"),
+                 #[cfg(not(target_arch = "wasm32"))]
+-                (Tab::Installation, "💾  Installation"),
+-                (Tab::Logs, "📝  Logs"),
+-                (Tab::Debug, "🐞  Debug"),
+-                (Tab::About, "ℹ  About"),
++                (Tab::Installation, "💾  安装"),
++                (Tab::Logs, "📝  日志"),
++                (Tab::Debug, "🐞  调试"),
++                (Tab::About, "ℹ  关于"),
+             ]
+             .into_iter()
+             .collect(),
+@@ -112,10 +115,52 @@
+     }
+ }
+ 
++
++/// The OpenVR driver receives the session path as a narrow C string built from a UTF-8
++/// `String`, and `std::ifstream` reinterprets those bytes using the ANSI code page. On a
++/// Chinese Windows (code page 936) any non-ASCII character in the install path makes the
++/// driver fail to open session.json, which crashes SteamVR as soon as a headset is used.
++fn non_ascii_install_path() -> Option<&'static str> {
++    use std::sync::OnceLock;
++
++    static CACHED: OnceLock<Option<String>> = OnceLock::new();
++
++    CACHED
++        .get_or_init(|| {
++            let exe = std::env::current_exe().ok()?;
++            let path = exe.to_string_lossy().to_string();
++
++            if path.is_ascii() {
++                None
++            } else {
++                Some(path)
++            }
++        })
++        .as_deref()
++}
++
+ impl eframe::App for Dashboard {
+     fn update(&mut self, context: &egui::Context, _: &mut eframe::Frame) {
+         let mut requests = vec![];
+ 
++        if let Some(path) = non_ascii_install_path() {
++            TopBottomPanel::top("non_ascii_install_path")
++                .frame(
++                    Frame::new()
++                        .fill(Color32::from_rgb(205, 147, 9))
++                        .inner_margin(Margin::same(6)),
++                )
++                .show(context, |ui| {
++                    ui.colored_label(
++                        Color32::BLACK,
++                        format!(
++                            "⚠ 安装路径中有非英文字符，SteamVR 驱动读不到 session.json，戴上头显就会崩溃。\
++                             请把整个 ALVR 目录移动到纯英文路径（如 C:/ALVR-CN）后，在「安装」页重新注册驱动。当前路径：{path}"
++                        ),
++                    );
++                });
++        }
++
+         let connected_to_server = self.data_sources.server_connected();
+ 
+         while let Some(event) = self.data_sources.poll_event() {
+@@ -170,7 +215,7 @@
+                 // todo: find a way to center both vertically and horizontally
+                 ui.vertical_centered(|ui| {
+                     ui.add_space(100.0);
+-                    ui.heading(RichText::new("SteamVR is restarting").size(30.0));
++                    ui.heading(RichText::new("SteamVR 正在重启").size(30.0));
+                 });
+             });
+ 
+@@ -231,26 +276,26 @@
+                             ui.add_space(5.0);
+ 
+                             if connected_to_server {
+-                                if ui.button("Restart SteamVR").clicked() {
++                                if ui.button("重启 SteamVR").clicked() {
+                                     self.restart_steamvr(&mut requests);
+                                 }
+-                            } else if ui.button("Launch SteamVR").clicked() {
++                            } else if ui.button("启动 SteamVR").clicked() {
+                                 crate::steamvr_launcher::LAUNCHER.lock().launch_steamvr();
+                             }
+ 
+                             ui.horizontal(|ui| {
+                                 ui.add_space(5.0);
+-                                ui.label(RichText::new("SteamVR:").size(13.0));
++                                ui.label(RichText::new("SteamVR：").size(13.0));
+                                 ui.add_space(-10.0);
+                                 if connected_to_server {
+                                     ui.label(
+-                                        RichText::new("Connected")
++                                        RichText::new("已连接")
+                                             .color(theme::OK_GREEN)
+                                             .size(13.0),
+                                     );
+                                 } else {
+                                     ui.label(
+-                                        RichText::new("Disconnected")
++                                        RichText::new("未连接")
+                                             .color(theme::KO_RED)
+                                             .size(13.0),
+                                     );
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/data_sources.rs src/ALVR-20.14.1/alvr/dashboard/src/data_sources.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/data_sources.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/data_sources.rs	2026-11-04 23:06:54.587314100 +0800
+@@ -180,7 +180,7 @@
+                         let message = version_data
+                             .get("body")
+                             .and_then(|v| v.as_str())
+-                            .unwrap_or("Error parsing release body");
++                            .unwrap_or("解析发布信息失败");
+ 
+                         report_event_local(
+                             &context,
+@@ -212,7 +212,7 @@
+                 while running.value() {
+                     while let Ok(request) = requests_receiver.try_recv() {
+                         debug!(
+-                            "Dashboard request: {}",
++                            "面板请求：{}",
+                             serde_json::to_string(&request).unwrap()
+                         );
+ 
+@@ -229,7 +229,7 @@
+                                 }
+                                 ServerRequest::SetValues(descs) => {
+                                     if let Err(e) = session_manager.set_values(descs) {
+-                                        error!("Failed to set session value: {e}")
++                                        error!("设置会话值失败：{e}")
+                                     }
+ 
+                                     report_session_local(&context, &events_sender, session_manager);
+@@ -243,9 +243,9 @@
+                                     if alvr_server_io::firewall_rules(action, &filesystem_layout)
+                                         .is_ok()
+                                     {
+-                                        info!("Setting firewall rules succeeded!");
++                                        info!("设置防火墙规则成功！");
+                                     } else {
+-                                        error!("Setting firewall rules failed!");
++                                        error!("设置防火墙规则失败！");
+                                     }
+                                 }
+                                 ServerRequest::RegisterAlvrDriver => {
+@@ -287,10 +287,10 @@
+                                 | ServerRequest::InsertIdr
+                                 | ServerRequest::StartRecording
+                                 | ServerRequest::StopRecording => {
+-                                    warn!("Cannot perform action, streamer (SteamVR) is not connected.")
++                                    warn!("无法执行操作：串流端（SteamVR）未连接。")
+                                 }
+                                 ServerRequest::RestartSteamvr | ServerRequest::ShutdownSteamvr => {
+-                                    warn!("Streamer not launched, can't signal SteamVR shutdown")
++                                    warn!("串流端未启动，无法通知 SteamVR 关闭")
+                                 }
+                             }
+                         } else {
+@@ -346,7 +346,7 @@
+                     while running.value() {
+                         match ws.read() {
+                             Ok(tungstenite::Message::Text(json_string)) => {
+-                                debug!("Server event: {json_string}");
++                                debug!("串流端事件：{json_string}");
+                                 if let Ok(event) = serde_json::from_str(&json_string) {
+                                     events_sender
+                                         .send(PolledEvent {
+@@ -406,7 +406,7 @@
+                         let matches = version == *alvr_common::ALVR_VERSION;
+ 
+                         if !matches {
+-                            error!("Server version mismatch: found {version}. Please remove all previous ALVR installations");
++                            error!("串流端版本不匹配：检测到 {version}。请移除所有旧的 ALVR 安装");
+                         }
+ 
+                         matches
+@@ -417,12 +417,12 @@
+                     {
+                         let mut session_source_lock = session_source.lock();
+                         if connected && matches!(*session_source_lock, SessionSource::Local(_)) {
+-                            info!("Server connected");
++                            info!("串流端已连接");
+                             *session_source_lock = SessionSource::Remote;
+                         } else if !connected
+                             && matches!(*session_source_lock, SessionSource::Remote)
+                         {
+-                            info!("Server disconnected");
++                            info!("串流端已断开");
+                             *session_source_lock =
+                                 SessionSource::Local(Box::new(get_local_session_source()));
+                         }
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/dashboard/src/main.rs src/ALVR-20.14.1/alvr/dashboard/src/main.rs
+--- orig/ALVR-20.14.1/alvr/dashboard/src/main.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/dashboard/src/main.rs	2026-11-04 23:25:42.843802900 +0800
+@@ -72,7 +72,7 @@
+     }
+ 
+     eframe::run_native(
+-        &format!("ALVR Dashboard (streamer v{})", *ALVR_VERSION),
++        &format!("ALVR 面板（串流端 v{}）", *ALVR_VERSION),
+         NativeOptions {
+             viewport: ViewportBuilder::default()
+                 .with_app_id("alvr.dashboard")
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/gui_common/src/basic_components/modal.rs src/ALVR-20.14.1/alvr/gui_common/src/basic_components/modal.rs
+--- orig/ALVR-20.14.1/alvr/gui_common/src/basic_components/modal.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/gui_common/src/basic_components/modal.rs	2026-11-04 23:08:27.610946700 +0800
+@@ -12,9 +12,9 @@
+ impl Display for ModalButton {
+     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+         match self {
+-            ModalButton::Ok => write!(f, "OK"),
+-            ModalButton::Cancel => write!(f, "Cancel"),
+-            ModalButton::Close => write!(f, "Close"),
++            ModalButton::Ok => write!(f, "确定"),
++            ModalButton::Cancel => write!(f, "取消"),
++            ModalButton::Close => write!(f, "关闭"),
+             ModalButton::Custom(text) => write!(f, "{text}"),
+         }
+     }
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/gui_common/src/fonts.rs src/ALVR-20.14.1/alvr/gui_common/src/fonts.rs
+--- orig/ALVR-20.14.1/alvr/gui_common/src/fonts.rs	1970-01-01 08:00:00.000000000 +0800
++++ src/ALVR-20.14.1/alvr/gui_common/src/fonts.rs	2026-11-04 23:00:58.536152800 +0800
+@@ -0,0 +1,65 @@
++//! CJK font loading. egui's bundled fonts have no Chinese glyphs, so a system
++//! font is pulled in as a fallback for both the proportional and mono families.
++
++use egui::{Context, FontData, FontDefinitions, FontFamily};
++use std::sync::Arc;
++
++const SYSTEM_FONT_CANDIDATES: &[&str] = &[
++    r"C:\Windows\Fonts\msyh.ttc",
++    r"C:\Windows\Fonts\msyhbd.ttc",
++    r"C:\Windows\Fonts\simhei.ttf",
++    r"C:\Windows\Fonts\Deng.ttf",
++    r"C:\Windows\Fonts\simsun.ttc",
++    "/System/Library/Fonts/PingFang.ttc",
++    "/System/Library/Fonts/STHeiti Medium.ttc",
++    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
++    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
++    "/usr/share/fonts/truetype/arphic/uming.ttc",
++];
++
++fn read_first_available() -> Option<Vec<u8>> {
++    // A font dropped next to the executable always wins, which makes it easy to
++    // swap in a nicer typeface without rebuilding.
++    if let Ok(exe) = std::env::current_exe() {
++        if let Some(dir) = exe.parent() {
++            for name in ["cjk.ttf", "cjk.otf", "cjk.ttc"] {
++                if let Ok(bytes) = std::fs::read(dir.join(name)) {
++                    return Some(bytes);
++                }
++            }
++        }
++    }
++
++    for path in SYSTEM_FONT_CANDIDATES {
++        if let Ok(bytes) = std::fs::read(path) {
++            return Some(bytes);
++        }
++    }
++
++    None
++}
++
++/// Registers a Chinese-capable font as a fallback. Safe to call more than once.
++pub fn install_cjk_fonts(ctx: &Context) {
++    let Some(bytes) = read_first_available() else {
++        return;
++    };
++
++    let mut fonts = FontDefinitions::default();
++
++    let mut font_data = FontData::from_owned(bytes);
++    font_data.index = 0;
++    fonts
++        .font_data
++        .insert("cjk_fallback".to_owned(), Arc::new(font_data));
++
++    for family in [FontFamily::Proportional, FontFamily::Monospace] {
++        fonts
++            .families
++            .entry(family)
++            .or_default()
++            .push("cjk_fallback".to_owned());
++    }
++
++    ctx.set_fonts(fonts);
++}
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/gui_common/src/i18n/i18n_data.rs src/ALVR-20.14.1/alvr/gui_common/src/i18n/i18n_data.rs
+--- orig/ALVR-20.14.1/alvr/gui_common/src/i18n/i18n_data.rs	1970-01-01 08:00:00.000000000 +0800
++++ src/ALVR-20.14.1/alvr/gui_common/src/i18n/i18n_data.rs	2026-11-04 23:25:43.264026800 +0800
+@@ -0,0 +1,440 @@
++// Generated by tools/gen_i18n.py — do not edit by hand.
++
++pub static ENTRIES: &[(&str, &str)] = &[
++    ("1/4 resolution", "1/4 分辨率"),
++    ("P1 is the fastest preset and P7 is the preset that produces better quality. P6 and P7 are too slow to be usable.", "P1 是速度最快的预设，P7 是画质更好的预设。P6 和 P7 太慢，实际无法使用。"),
++    ("Reduce compression artifacts at the cost of small performance penalty", "以很小的性能代价减少压缩伪影"),
++    ("Spatial: Helps reduce color banding, but high-complexity scenes might look worse.\nTemporal: Helps improve overall encoding quality, very small trade-off in speed.", "空间：有助于减少色带，但高复杂度场景可能看起来更差。\n时间：有助于提升整体编码质量，速度损耗极小。"),
++    ("Enable High-Motion Quality Boost", "启用高动态画质增强"),
++    ("Enables high motion quality boost mode.\nAllows the encoder to perform pre-analysis the motion of the video and use the information for better encoding", "启用高动态画质增强模式。\n允许编码器对视频运动进行预分析，并利用这些信息获得更好的编码效果"),
++    ("Enable Pre-analysis", "启用预分析"),
++    ("Enables pre-analysis during encoding. This will likely result in reduced performance, but may increase quality.\nDoes not work with the \"Reduce color banding\" option, requires enabling \"Use preproc\"", "在编码时启用预分析。这可能会降低性能，但可能提升画质。\n无法与“降低色带”选项同时使用，需要启用“使用预处理”"),
++    ("Force software encoding", "强制软件编码"),
++    ("Forces the encoder to use CPU instead of GPU", "强制编码器使用 CPU 而不是 GPU"),
++    ("Encoder thread count", "编码线程数"),
++    ("Enable HDR", "启用 HDR"),
++    ("If the client has no preference, enables compositing VR layers to an RGBA float16 framebuffer, and doing sRGB/YUV conversions in shader code.", "如果客户端没有偏好，则将 VR 图层合成到 RGBA float16 帧缓冲，并在着色器中完成 sRGB/YUV 转换。"),
++    ("Override for HDR", "覆盖 HDR 设置"),
++    ("The server will override the headset client's preference for HDR.", "串流端将覆盖头显客户端对 HDR 的偏好设置。"),
++    ("Force HDR sRGB Correction", "强制 HDR sRGB 校正"),
++    ("Forces sRGB correction on all composited SteamVR layers. Useful if an HDR-injected game is too dark.", "对所有合成的 SteamVR 图层强制应用 sRGB 校正。如果注入了 HDR 的游戏画面过暗，此项会很有用。"),
++    ("Clamp HDR extended range", "限制 HDR 扩展范围"),
++    ("Clamps HDR extended range to 0.0~1.0, useful if you only want HDR to reduce banding.", "将 HDR 扩展范围限制在 0.0~1.0，如果你只想用 HDR 来减少色带，此项很有用。"),
++    ("Quality preset", "画质预设"),
++    ("Controls overall quality preset of the encoder. Works only on Windows AMD AMF, Linux VAAPI (AMD/Intel).", "控制编码器的整体画质预设。仅在 Windows 的 AMD AMF、Linux 的 VAAPI（AMD/Intel）上有效。"),
++    ("Enable VBAQ/CAQ", "启用 VBAQ/CAQ"),
++    ("Enables Variance Based Adaptive Quantization on h264 and HEVC, and Content Adaptive Quantization on AV1", "在 h264 和 HEVC 上启用基于方差的 adaptive quantization，在 AV1 上启用内容自适应量化"),
++    ("CBR: Constant BitRate mode. This is recommended.\nVBR: Variable BitRate mode. Not commended because it may throw off the adaptive bitrate algorithm. This is only supported on Windows and only with AMD/Nvidia GPUs", "CBR：恒定码率模式。推荐使用。\nVBR：可变码率模式。不推荐，因为它会干扰自适应码率算法。仅 Windows 且仅限 AMD/Nvidia 显卡支持。"),
++    ("h264: Profile", "h264：配置档"),
++    ("Whenever possible, attempts to use this profile. May increase compatibility with varying mobile devices. Only has an effect for h264. Doesn't affect NVENC on Windows.", "尽可能尝试使用此配置档。可提升与各种移动设备的兼容性。仅对 h264 有效。在 Windows 上不影响 NVENC。"),
++    ("CAVLC algorithm is recommended.\nCABAC produces better compression but it's significantly slower and may lead to runaway latency", "推荐使用 CAVLC 算法。\nCABAC 压缩效果更好，但速度明显更慢，可能导致延迟失控"),
++    ("In CBR mode, this makes sure the bitrate does not fall below the assigned value. This is mostly useful for debugging.", "在 CBR 模式下，确保码率不会低于设定值。主要用于调试。"),
++    ("10-bit encoding", "10 位编码"),
++    ("Sets the encoder to use 10 bits per channel instead of 8, if the client has no preference. Does not work on Linux with Nvidia", "如果客户端没有偏好，则让编码器使用每通道 10 位而不是 8 位。在 Linux + Nvidia 环境下无效"),
++    ("Override for 10-bit encoding", "覆盖 10 位编码设置"),
++    ("The server will override the headset client's preference for 10-bit encoding.", "串流端将覆盖头显客户端对 10 位编码的偏好设置。"),
++    ("Full range color", "全范围色彩"),
++    ("Sets the encoder to encode full range RGB (0-255) instead of limited/video range RGB (16-235), if the client has no preference", "如果客户端没有偏好，则让编码器编码全范围 RGB（0-255）而不是有限/视频范围 RGB（16-235）"),
++    ("Override for full range color", "覆盖全范围色彩设置"),
++    ("The server will override the headset client's preference for full range color.", "串流端将覆盖头显客户端对全范围色彩的偏好设置。"),
++    ("Encoding Gamma", "编码 Gamma"),
++    ("To prioritize darker pixels at the expense of potentially additional banding in midtones, set to 2.2. To allow the encoder to decide priority on its own, set to 1.0.", "若想优先保留暗部像素、但可能在中间调产生额外色带，请设为 2.2。若想由编码器自行决定优先级，请设为 1.0。"),
++    ("Override for encoding gamma", "覆盖编码 Gamma 设置"),
++    ("The server will override the headset client's preference for encoding gamma.", "串流端将覆盖头显客户端对编码 Gamma 的偏好设置。"),
++    ("Software (CPU) encoding", "软件（CPU）编码"),
++    ("Type", "类型"),
++    ("Allowed percentage of frame interval to allocate for video encoding", "允许分配给视频编码的帧间隔百分比"),
++    ("Maximum decoder latency", "解码器最大延迟"),
++    ("When the decoder latency goes above this threshold, the bitrate will be reduced", "当解码器延迟超过此阈值时，将降低码率"),
++    ("latency overstep", "延迟超限"),
++    ("Number of consecutive frames above the threshold to trigger a bitrate reduction", "连续超过阈值的帧数达到该值后触发降码率"),
++    (" frames", " 帧"),
++    ("Controls how much the bitrate is reduced when the decoder latency goes above the threshold", "控制解码器延迟超过阈值时降低多少码率"),
++    ("Constant", "恒定"),
++    ("Percentage of network bandwidth to allocate for video transmission", "分配给视频传输的网络带宽百分比"),
++    ("Maximum bitrate", "最大码率"),
++    ("Minimum bitrate", "最小码率"),
++    ("Maximum network latency", "最大网络延迟"),
++    ("Currently there is a bug where the decoder latency keeps rising when above a certain bitrate", "目前存在一个 bug：码率超过一定值后解码器延迟会持续上升"),
++    ("FPS reset threshold multiplier", "FPS 重置阈值倍数"),
++    ("If the framerate changes more than this factor, trigger a parameters update", "如果帧率变化超过此倍数，则触发参数更新"),
++    ("Ensure that the specified bitrate value is respected regardless of the framerate", "确保无论帧率如何都遵守指定的码率值"),
++    ("Controls the smoothness during calculations", "控制计算过程的平滑程度"),
++    ("When this is enabled, an IDR frame is requested after the bitrate is changed.\nThis has an effect only on AMD GPUs.", "启用后，在码率改变之后会请求一个 IDR 帧。\n仅对 AMD 显卡有效。"),
++    ("Foveation offset", "注视点偏移"),
++    ("Force enable on smartphone clients", "在手机客户端上强制启用"),
++    ("Center region width", "中心区域宽度"),
++    ("Center region height", "中心区域高度"),
++    ("Center shift X", "中心偏移 X"),
++    ("Center shift Y", "中心偏移 Y"),
++    ("Horizontal edge ratio", "水平边缘比例"),
++    ("Vertical edge ratio", "垂直边缘比例"),
++    ("HEVC", "HEVC（H.265）"),
++    ("AV1", "AV1"),
++    ("High", "High（高）"),
++    ("Main", "Main（主）"),
++    ("Baseline", "Baseline（基础）"),
++    ("The threshold is applied per-channel", "阈值按通道分别应用"),
++    ("Hue start max", "色相起点上限"),
++    ("Hue start min", "色相起点下限"),
++    ("Hue end min", "色相终点下限"),
++    ("Hue end max", "色相终点上限"),
++    ("Enabling this will adapt transparency based on the brightness of each pixel.\nThis is a similar effect to AR glasses.", "启用后将根据每个像素的亮度调整透明度。\n效果类似 AR 眼镜。"),
++    ("RGB Chroma Key", "RGB 抠像"),
++    ("HSV Chroma Key", "HSV 抠像"),
++    ("Reduce flicker for high contrast edges.\\nUseful when the input resolution is high compared to the headset display", "减少高对比边缘的闪烁。\n当输入分辨率相对头显屏幕较高时很有用"),
++    ("Improve clarity of high contrast edges and counteract blur.\\nUseful when the input resolution is low compared to the headset display", "提升高对比边缘的清晰度并抵消模糊。\n当输入分辨率相对头显屏幕较低时很有用"),
++    ("Improves visual quality by using the edge direction to upscale at a slight performance loss", "利用边缘方向进行放大以提升画质，会有轻微性能损耗"),
++    ("Dimensional resolution multiplier, high values will cause performance issues with weaker headset hardware or higher resolutions", "维度分辨率倍数，数值过高会在较弱的头显硬件或较高分辨率下造成性能问题"),
++    ("HEVC may provide better visual fidelity at the cost of increased encoder latency", "HEVC 可能提供更好的画面保真度，代价是编码延迟增加"),
++    ("Disabling foveated encoding may result in significantly higher encode/decode times and stuttering, or even crashing.\nIf you want to reduce the amount of pixelation on the edges, increase the center region width and height", "禁用注视点编码可能导致编解码耗时显著增加并出现卡顿，甚至崩溃。\n如果想减少边缘的像素化程度，请增大中心区域的宽度和高度"),
++    ("Maximum buffering", "最大缓冲"),
++    ("Increasing this value will help reduce stutter but it will increase latency", "提高此值有助于减少卡顿，但会增加延迟"),
++    ("This works only on Windows. It shouldn't be disabled except in certain circumstances when you know the VR game will not meet the target framerate.", "仅在 Windows 上有效。除非你确定某款 VR 游戏无法达到目标帧率，否则不应禁用。"),
++    ("Attempts to use a software decoder on the device. Slow, but may work around broken codecs.", "尝试在设备上使用软件解码器。速度较慢，但可以绕过损坏的编解码器。"),
++    ("Resolution used for encoding and decoding. Relative to a single eye view.", "用于编码和解码的分辨率。以单眼视角为基准。"),
++    ("This is the resolution that SteamVR will use as default for the game rendering. Relative to a single eye view.", "SteamVR 将以此分辨率作为游戏渲染的默认值。以单眼视角为基准。"),
++    ("Preferred FPS", "首选帧率"),
++    ("You probably don't want to change this. Allows for changing adapter for ALVR compositor.", "通常不需要修改。可用于更换 ALVR 合成器使用的显卡。"),
++    ("Client-side post-processing", "客户端后处理"),
++    ("Hardware optimized algorithms, available on Quest and Pico headsets", "硬件优化算法，适用于 Quest 与 Pico 头显"),
++    ("Snapdragon Game Super Resolution client-side upscaling", "Snapdragon Game Super Resolution 客户端超分"),
++    ("By name (substring)", "按名称（子串）"),
++    ("By index", "按索引"),
++    ("Average buffering", "平均缓冲"),
++    ("Batch size", "批处理大小"),
++    ("Mute desktop audio when streaming", "串流时静音桌面音频"),
++    ("Virtual Audio Cable", "虚拟声卡（Virtual Audio Cable）"),
++    ("VB Cable", "虚拟声卡（VB Cable）"),
++    ("VoiceMeeter", "VoiceMeeter"),
++    ("VoiceMeeter Aux", "VoiceMeeter Aux"),
++    ("VoiceMeeter VAIO3", "VoiceMeeter VAIO3"),
++    ("This device is used by ALVR to output microphone audio", "此设备由 ALVR 用于输出麦克风音频"),
++    ("This device is set in SteamVR as the default microphone", "此设备在 SteamVR 中被设为默认麦克风"),
++    ("Headset speaker", "头显扬声器"),
++    ("Headset microphone", "头显麦克风"),
++    ("To be able to use the microphone on Windows, you need to install Virtual Audio Cable", "要在 Windows 上使用麦克风，需要安装 Virtual Audio Cable"),
++    ("VRChat Eye OSC", "VRChat 眼部 OSC"),
++    ("VRCFaceTracking", "VRCFaceTracking"),
++    ("It's recommended to set Tracking Mode to Full-Body Tracking in Motion Tracker app settings on your Pico headset.", "建议在 Pico 头显的 Motion Tracker 应用设置中将跟踪模式设为全身跟踪（Full-Body Tracking）。"),
++    ("Body Tracking", "身体追踪"),
++    ("Improves accuracy of the tracking at the cost of higher latency.", "提升跟踪精度，代价是更高的延迟。"),
++    ("If trackers have not been calibrated before, the calibration process will start after you connect to the streamer.", "如果追踪器此前没有校准过，连接串流端后将自动开始校准。"),
++    ("Object Tracking", "物体追踪"),
++    ("Fake Vive Trackers", "虚拟 Vive 追踪器"),
++    ("VRChat Body OSC", "VRChat 身体 OSC"),
++    ("Turn this off to temporarily pause tracking.", "关闭此项可暂时暂停追踪。"),
++    ("Turn this off to temporarily pause sending data.", "关闭此项可暂时暂停发送数据。"),
++    ("How close the tips of your fingers need to be to register a pinch click.", "指尖需要靠得多近才能触发捏合点击。"),
++    ("How close together the tips of your fingers need to be to start registering a pinch trigger pull.", "指尖需要靠得多近才开始触发捏合扳机。"),
++    ("How close to your palm the tips of your fingers need to be to register a curl click.", "指尖需要离手掌多近才能触发弯曲点击。"),
++    ("How close to your palm the tips of your fingers need to be to start registering a trigger pull.", "指尖需要离手掌多近才开始触发扳机。"),
++    ("The radius of motion of the joystick. The joystick can be controlled if the thumb is within 2x this range.", "摇杆的活动半径。拇指处于该范围的 2 倍以内时可以操控摇杆。"),
++    ("How long the gesture must be continuously held before it is activated.", "手势需要持续保持多久才会被触发。"),
++    ("How long the gesture must be continuously released before it is deactivated.", "手势需要持续松开多久才会被取消。"),
++    ("How long the after the gesture has been deactivated before it can be activated again.", "手势取消后需要等待多久才能再次触发。"),
++    ("Minimum duration", "最短持续时间"),
++    ("Enabling this will use separate tracker objects with the full skeletal tracking level when hand tracking is detected. This is required for VRChat hand tracking.", "启用后，在检测到手部追踪时会改用独立的追踪器对象并启用完整骨骼追踪级别。VRChat 手部追踪需要此选项。"),
++    ("Predict hand skeleton to make it less floaty. It may make hands too jittery.", "预测手部骨骼，使其不那么飘。可能会让手部抖动更明显。"),
++    ("Turning this off will make the controllers appear powered off.", "关闭此项后手柄会显示为已断电。"),
++    ("Enabling this passes skeletal hand data (finger tracking) to SteamVR.", "启用后会将手部骨骼数据（手指追踪）传给 SteamVR。"),
++    ("Track hand skeleton while holding controllers. This will reduce hand tracking frequency to 30Hz.\nBecause of runtime limitations, this option is ignored when body tracking is active.", "握着手柄时仍跟踪手部骨骼。这会将手部追踪频率降至 30Hz。\n由于运行时限制，身体追踪开启时此选项会被忽略。"),
++    ("Enabling this allows using hand gestures to emulate controller inputs.", "启用后可以用手势模拟手柄输入。"),
++    ("Prediction", "预测"),
++    ("Higher values make the controllers track smoother.\nTechnically, this is the time (counted in frames) between pose submitted to SteamVR and the corresponding virtual vsync happens.\nCurrently this cannot be reliably estimated automatically. The correct value should be 2 but 3 is default for smoother tracking at the cost of slight lag.", "数值越大，手柄追踪越平滑。\n技术上讲，这是姿态提交给 SteamVR 到对应的虚拟垂直同步发生之间的时间（以帧计）。\n目前无法可靠地自动估算此值。正确值应该是 2，但默认值为 3，以极小的延迟换取更平滑的追踪。"),
++    ("Right controller offset is mirrored horizontally", "右手柄偏移量会水平镜像"),
++    ("List of OpenXR-syle paths", "OpenXR 风格路径列表"),
++    ("Disabled: the playspace origin is determined by the room-scale guardian setup.\nLocal floor: the origin is on the floor and resets when long pressing the oculus button.\nLocal: the origin resets when long pressing the oculus button, and is calculated as an offset from the current head position.", "禁用：游玩空间原点由房间范围守护边界设置决定。\n本地地面：原点位于地面，长按 oculus 键时重置。\n本地：长按 oculus 键时重置原点，原点以当前头部位置为基准计算偏移。"),
++    ("Disabled: the playspace orientation is determined by the room-scale guardian setup.\nYaw: the forward direction is reset when long pressing the oculus button.\nTilted: the world gets tilted when long pressing the oculus button. This is useful for using VR while laying down.", "禁用：游玩空间朝向由房间范围守护边界设置决定。\n偏航：长按 oculus 键时重置前进方向。\n倾斜：长按 oculus 键时世界会倾斜。躺着玩 VR 时很有用。"),
++    ("Maximum prediction for head and controllers. Used to avoid too much jitter during loading.", "头部和手柄的最大预测值。用于避免加载过程中出现过度抖动。"),
++    ("Allow untrusted clients to connect without confirmation. This is not recommended for security reasons.", "允许未受信任的客户端在未经确认的情况下连接。出于安全考虑，不推荐这样做。"),
++    ("UDP: Faster, but less stable than TCP. Try this if your network is well optimized and free of interference.\nTCP: Slower than UDP, but more stable. Pick this if you experience video or audio stutters with UDP.", "UDP：比 TCP 更快，但稳定性较差。如果你的网络优化良好且没有干扰，可以尝试。\nTCP：比 UDP 慢，但更稳定。如果使用 UDP 时视频或音频出现卡顿，请选择此项。"),
++    ("Which release type of client should ALVR look for when establishing a wired connection.", "建立有线连接时，ALVR 应查找哪种发布类型的客户端。"),
++    ("Wether ALVR should try to automatically launch the client when establishing a wired connection.", "建立有线连接时，ALVR 是否应尝试自动启动客户端。"),
++    ("If on_connect.bat exists alongside session.json, it will be run on headset connect. Env var ACTION will be set to `connect`.", "如果 session.json 同目录下存在 on_connect.bat，它会在头显连接时运行。环境变量 ACTION 会被设为 `connect`。"),
++    ("If on_connect.sh exists alongside session.json, it will be run on headset connect. Env var ACTION will be set to `connect`.", "如果 session.json 同目录下存在 on_connect.sh，它会在头显连接时运行。环境变量 ACTION 会被设为 `connect`。"),
++    ("If on_disconnect.bat exists alongside session.json, it will be run on headset disconnect. Env var ACTION will be set to `disconnect`.", "如果 session.json 同目录下存在 on_disconnect.bat，它会在头显断开时运行。环境变量 ACTION 会被设为 `disconnect`。"),
++    ("If on_disconnect.sh exists alongside session.json, it will be run on headset disconnect. Env var ACTION will be set to `disconnect`.", "如果 session.json 同目录下存在 on_disconnect.sh，它会在头显断开时运行。环境变量 ACTION 会被设为 `disconnect`。"),
++    ("Allow cross-origin browser requests to control ALVR settings remotely.", "允许跨域浏览器请求远程控制 ALVR 设置。"),
++    ("If the client, server or the network discarded one packet, discard packets until a IDR packet is found.", "如果客户端、串流端或网络丢弃了一个数据包，则丢弃后续数据包直到找到 IDR 包。"),
++    ("Streamer send buffer size", "串流端发送缓冲区大小"),
++    ("Streamer receive buffer size", "串流端接收缓冲区大小"),
++    ("Client send buffer size", "客户端发送缓冲区大小"),
++    ("Client receive buffer size", "客户端接收缓冲区大小"),
++    ("The server discards video packets if it can't push them to the network.\nThis could happen on TCP. A IDR frame is requested in this case.", "如果无法把视频包推送到网络，串流端会丢弃这些包。\n在 TCP 上可能发生这种情况，此时会请求一个 IDR 帧。"),
++    ("Minimum IDR interval", "最小 IDR 间隔"),
++    ("Notification tips teach you how to use ALVR", "通知提示会告诉你如何使用 ALVR"),
++    ("This applies only to certain error or warning messages.", "仅对部分错误或警告消息生效。"),
++    ("Write logs into the session_log.txt file.", "将日志写入 session_log.txt 文件。"),
++    ("These settings enable extra spammy logs for debugging purposes.", "这些设置会输出更多调试用日志。"),
++    ("Open and close SteamVR with dashboard", "随面板一起打开和关闭 SteamVR"),
++    ("Duration", "时长"),
++    ("Start video recording at client connection", "客户端连接时开始录制视频"),
++    ("Async Compute is currently broken in SteamVR, keep disabled. ONLY FOR TESTING.", "Async Compute 目前在 SteamVR 中存在问题，请保持禁用。仅供测试。"),
++    ("Async reprojection only works if you can always hit at least half of your refresh rate.", "异步重投影只有在你始终能达到刷新率至少一半时才有效。"),
++    ("Linear and angular velocity multiplier for debug purposes.\nIt does not update in real time.", "调试用的线速度与角速度倍数。\n不会实时更新。"),
++    ("Unknown", "未知"),
++    ("ALVR Controller", "ALVR 手柄"),
++    ("Key", "键"),
++    ("Value", "值"),
++    ("Tuning preset", "调优预设"),
++    ("Multi pass", "多遍编码"),
++    ("Adaptive quantization mode", "自适应量化模式"),
++    ("Low delay key frame scale", "低延迟关键帧缩放"),
++    ("Refresh rate", "刷新率"),
++    ("Enable intra refresh", "启用帧内刷新"),
++    ("Intra refresh period", "帧内刷新周期"),
++    ("Intra refresh count", "帧内刷新次数"),
++    ("Max num ref frames", "最大参考帧数"),
++    ("Gop length", "GOP 长度"),
++    ("P frame strategy", "P 帧策略"),
++    ("Rate control mode", "码率控制模式"),
++    ("Rc buffer size", "RC 缓冲区大小"),
++    ("Rc initial delay", "RC 初始延迟"),
++    ("Rc max bitrate", "RC 最大码率"),
++    ("Rc average bitrate", "RC 平均码率"),
++    ("Enable weighted prediction", "启用加权预测"),
++    ("Use preproc", "使用预处理"),
++    ("Preproc sigma", "预处理 sigma"),
++    ("Preproc tor", "预处理 tor"),
++    ("Entropy coding", "熵编码"),
++    ("Filler data", "填充数据"),
++    ("Max saturation multiplier", "最大饱和度倍数"),
++    ("Latency overstep multiplier", "延迟超限倍数"),
++    ("Mode", "模式"),
++    ("Adapt to framerate", "适应帧率"),
++    ("History size", "历史长度"),
++    ("Image corruption fix", "画面损坏修复"),
++    ("Force enable", "强制启用"),
++    ("Brightness", "亮度"),
++    ("Contrast", "对比度"),
++    ("Saturation", "饱和度"),
++    ("Gamma", "Gamma"),
++    ("Sharpening", "锐化"),
++    ("Red", "红"),
++    ("Green", "绿"),
++    ("Blue", "蓝"),
++    ("Distance threshold", "距离阈值"),
++    ("Feathering", "羽化"),
++    ("Saturation start max", "饱和度起点上限"),
++    ("Saturation start min", "饱和度起点下限"),
++    ("Saturation end min", "饱和度终点下限"),
++    ("Saturation end max", "饱和度终点上限"),
++    ("Value start max", "明度起点上限"),
++    ("Value start min", "明度起点下限"),
++    ("Value end min", "明度终点下限"),
++    ("Value end max", "明度终点上限"),
++    ("Super sampling", "超采样"),
++    ("Edge direction", "边缘方向"),
++    ("Edge threshold", "边缘阈值"),
++    ("Edge sharpness", "边缘锐度"),
++    ("Upscale factor", "放大倍数"),
++    ("Passthrough", "透视"),
++    ("Bitrate", "码率"),
++    ("Preferred codec", "首选编解码器"),
++    ("Foveated encoding", "注视点编码"),
++    ("Color correction", "色彩校正"),
++    ("Buffering history weight", "缓冲历史权重"),
++    ("Enforce server frame pacing", "强制串流端帧同步"),
++    ("Encoder config", "编码器配置"),
++    ("Force software decoder", "强制软件解码"),
++    ("Mediacodec extra options", "Mediacodec 额外选项"),
++    ("Transcoding view resolution", "转码视图分辨率"),
++    ("Emulated headset view resolution", "模拟头显视图分辨率"),
++    ("Adapter index", "显卡索引"),
++    ("Clientside foveation", "客户端注视点"),
++    ("Upscaling", "超分辨率"),
++    ("Device", "设备"),
++    ("Buffering", "缓冲"),
++    ("Devices", "设备列表"),
++    ("Eye tracking fb", "眼动追踪 fb"),
++    ("Face tracking fb", "面部追踪 fb"),
++    ("Eye expressions htc", "眼部表情 htc"),
++    ("Lip expressions htc", "唇部表情 htc"),
++    ("Face tracking pico", "面部追踪 pico"),
++    ("Sources", "数据源"),
++    ("Sink", "接收端"),
++    ("Body tracking fb", "身体追踪 fb"),
++    ("Body tracking bd", "身体追踪 bd"),
++    ("Full body", "全身"),
++    ("Tracked", "已追踪"),
++    ("Host", "主机"),
++    ("Port", "端口"),
++    ("Publish", "发布"),
++    ("Orientation correction", "朝向校正"),
++    ("Deviation", "偏差"),
++    ("Off", "关"),
++    ("On", "开"),
++    ("Min", "最小"),
++    ("Max", "最大"),
++    ("Destination", "目标"),
++    ("Mapping type", "映射类型"),
++    ("Binary conditions", "二元条件"),
++    ("Click threshold", "点击阈值"),
++    ("Touch threshold", "触摸阈值"),
++    ("Force threshold", "力度阈值"),
++    ("Only touch", "仅触摸"),
++    ("Pinch touch distance", "捏合触摸距离"),
++    ("Pinch trigger distance", "捏合扳机距离"),
++    ("Curl touch distance", "弯曲触摸距离"),
++    ("Curl trigger distance", "弯曲扳机距离"),
++    ("Joystick deadzone", "摇杆死区"),
++    ("Joystick offset horizontal", "摇杆水平偏移"),
++    ("Joystick offset vertical", "摇杆垂直偏移"),
++    ("Joystick range", "摇杆范围"),
++    ("Activation delay", "激活延迟"),
++    ("Deactivation delay", "取消延迟"),
++    ("Repeat delay", "重复延迟"),
++    ("Intensity multiplier", "强度倍数"),
++    ("Amplitude curve", "振幅曲线"),
++    ("Steamvr input 2 0", "SteamVR 输入 2.0"),
++    ("Predict", "预测"),
++    ("Hand skeleton", "手部骨骼"),
++    ("Multimodal tracking", "多模态追踪"),
++    ("Hand tracking interaction", "手部追踪交互"),
++    ("Haptics", "触觉反馈"),
++    ("Emulation mode", "模拟模式"),
++    ("Extra openvr props", "额外 OpenVR 属性"),
++    ("Linear velocity cutoff", "线速度截止"),
++    ("Angular velocity cutoff", "角速度截止"),
++    ("Left controller position offset", "左手柄位置偏移"),
++    ("Left controller rotation offset", "左手柄旋转偏移"),
++    ("Left hand tracking position offset", "左手追踪位置偏移"),
++    ("Left hand tracking rotation offset", "左手追踪旋转偏移"),
++    ("Button mappings", "按键映射"),
++    ("Button mapping config", "按键映射配置"),
++    ("Position recentering mode", "位置重定位模式"),
++    ("Rotation recentering mode", "旋转重定位模式"),
++    ("Controllers", "手柄"),
++    ("Tracking ref only", "仅跟踪参考"),
++    ("Enable vive tracker proxy", "启用 Vive 追踪器代理"),
++    ("Face tracking", "面部追踪"),
++    ("Body tracking", "身体追踪"),
++    ("Max prediction ms", "最大预测毫秒"),
++    ("Auto trust clients", "自动信任客户端"),
++    ("Stream protocol", "串流协议"),
++    ("Client discovery", "客户端发现"),
++    ("Wired client type", "有线客户端类型"),
++    ("Wired client autolaunch", "有线客户端自动启动"),
++    ("Enable on connect script", "启用连接时脚本"),
++    ("Enable on disconnect script", "启用断开时脚本"),
++    ("Allow untrusted http", "允许非受信任 HTTP"),
++    ("Avoid video glitching", "避免画面撕裂"),
++    ("Packet size", "包大小"),
++    ("Stream port", "串流端口"),
++    ("Web server port", "Web 服务端口"),
++    ("Osc local port", "OSC 本地端口"),
++    ("Max queued server video frames", "串流端最大排队视频帧数"),
++    ("Statistics history size", "统计历史长度"),
++    ("Dscp", "DSCP"),
++    ("Hide spammy events", "隐藏刷屏事件"),
++    ("Show notification tip", "显示通知提示"),
++    ("Prefer backtrace", "优先使用 backtrace"),
++    ("Notification level", "通知级别"),
++    ("Client log report level", "客户端日志上报级别"),
++    ("Show raw events", "显示原始事件"),
++    ("Log to disk", "写入磁盘日志"),
++    ("Log tracking", "记录追踪数据"),
++    ("Log button presses", "记录按键"),
++    ("Log haptics", "记录触觉反馈"),
++    ("Debug groups", "调试分组"),
++    ("Rolling video files", "分段录制视频"),
++    ("Capture frame dir", "截图目录"),
++    ("Linux async compute", "Linux 异步计算"),
++    ("Linux async reprojection", "Linux 异步重投影"),
++    ("Hide while version", "在该版本中隐藏"),
++    ("Steamvr launcher", "SteamVR 启动器"),
++    ("Capture", "捕获"),
++    ("Logging", "日志"),
++    ("Patches", "补丁"),
++    ("Velocities multiplier", "速度倍数"),
++    ("Open setup wizard", "打开设置向导"),
++    ("New version popup", "新版本弹窗"),
++    ("Video", "视频"),
++    ("Audio", "音频"),
++    ("Headset", "头显"),
++    ("Connection", "连接"),
++    ("Extra", "额外"),
++    ("Resolution", "分辨率"),
++    ("Preferred framerate", "首选帧率"),
++    ("Codec preset", "编解码器预设"),
++    ("Encoder preset", "编码器预设"),
++    ("Foveation preset", "注视点预设"),
++    ("Eye and face tracking", "眼动与面部追踪"),
++    ("Scale", "缩放"),
++    ("Absolute", "绝对"),
++    ("Quality", "画质"),
++    ("Balanced", "均衡"),
++    ("Speed", "速度"),
++    ("High quality", "高质量"),
++    ("Low latency", "低延迟"),
++    ("Ultra low latency", "极低延迟"),
++    ("Lossless", "无损"),
++    ("Quarter resolution", "1/4 分辨率"),
++    ("Full resolution", "全分辨率"),
++    ("Spatial", "空间"),
++    ("Temporal", "时间"),
++    ("Constant mbps", "恒定 Mbps"),
++    ("Adaptive", "自适应"),
++    ("Low", "低"),
++    ("Medium", "中"),
++    ("Static", "静态"),
++    ("Dynamic", "动态"),
++    ("A v1", "AV1"),
++    ("Hevc", "HEVC"),
++    ("Blend", "混合"),
++    ("Rgb chroma key", "RGB 抠像"),
++    ("Hsv chroma key", "HSV 抠像"),
++    ("Normal", "标准"),
++    ("Name substring", "按名称（子串）"),
++    ("Index", "按索引"),
++    ("V a c", "Virtual Audio Cable"),
++    ("V b cable", "VB Cable"),
++    ("Voice meeter", "VoiceMeeter"),
++    ("Voice meeter aux", "VoiceMeeter Aux"),
++    ("Voice meeter vaio3", "VoiceMeeter VAIO3"),
++    ("Custom", "自定义"),
++    ("Rift s", "Rift S"),
++    ("Quest2", "Quest 2"),
++    ("Quest pro", "Quest Pro"),
++    ("Vrchat eye osc", "VRChat Eye OSC"),
++    ("Vrc face tracking", "VRCFaceTracking"),
++    ("Object tracking", "物体追踪"),
++    ("Fake vive tracker", "虚拟 Vive 追踪器"),
++    ("Vrchat body osc", "VRChat 身体 OSC"),
++    ("Rift s touch", "Rift S Touch"),
++    ("Quest2 touch", "Quest 2 Touch"),
++    ("Quest3 plus", "Quest 3 Touch Plus"),
++    ("Pico4", "Pico 4"),
++    ("Valve index", "Valve Index"),
++    ("Vive wand", "Vive Wand"),
++    ("Vive tracker", "Vive Tracker"),
++    ("Hysteresis threshold", "迟滞阈值"),
++    ("Binary to scalar", "二元转标量"),
++    ("Remap", "重映射"),
++    ("Local floor", "本地地面"),
++    ("Local", "本地"),
++    ("Yaw", "偏航"),
++    ("Tilted", "倾斜"),
++    ("Udp", "UDP"),
++    ("Tcp", "TCP"),
++    ("Default", "默认"),
++    ("Maximum", "最大"),
++    ("Best effort", "尽力而为"),
++    ("Class selector", "类别选择符"),
++    ("Assured forwarding", "确保转发"),
++    ("Expedited forwarding", "加速转发"),
++    ("Disabled", "禁用"),
++    ("Enabled", "启用"),
++    ("System Default", "系统默认"),
++    ("Automatic", "自动"),
++    ("Windows pc", "Windows 电脑"),
++    ("Linux pc", "Linux 电脑"),
++    ("Macos", "macOS"),
++    ("Apple headset", "Apple 头显"),
++    ("Store", "商店版"),
++    ("Github", "GitHub 版"),
++    ("Quest3", "Quest 3"),
++    ("Quest1", "Quest"),
++    ("Pico neo3", "Pico Neo 3"),
++];
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/gui_common/src/i18n.rs src/ALVR-20.14.1/alvr/gui_common/src/i18n.rs
+--- orig/ALVR-20.14.1/alvr/gui_common/src/i18n.rs	1970-01-01 08:00:00.000000000 +0800
++++ src/ALVR-20.14.1/alvr/gui_common/src/i18n.rs	2026-11-04 23:00:58.509543600 +0800
+@@ -0,0 +1,34 @@
++//! Very small translation layer for the ALVR Chinese localization.
++//!
++//! The table is generated by `tools/gen_i18n.py` from `tools/zh_cn.tsv`.
++//! Lookup is exact-match on the English source string; unknown strings are
++//! returned unchanged so that logs, ids and file paths stay untouched.
++
++use std::collections::HashMap;
++use std::sync::OnceLock;
++
++mod i18n_data;
++
++fn table() -> &'static HashMap<&'static str, &'static str> {
++    static TABLE: OnceLock<HashMap<&'static str, &'static str>> = OnceLock::new();
++
++    TABLE.get_or_init(|| i18n_data::ENTRIES.iter().copied().collect())
++}
++
++/// Translate a UI string. Returns the input untouched when there is no entry.
++pub fn tr(text: &str) -> String {
++    table()
++        .get(text)
++        .map(|translated| (*translated).to_owned())
++        .unwrap_or_else(|| text.to_owned())
++}
++
++/// Translate a UI string, borrowing when there is no entry.
++pub fn tr_str(text: &str) -> &str {
++    table().get(text).copied().unwrap_or(text)
++}
++
++/// True if a translation exists for this exact string.
++pub fn has(text: &str) -> bool {
++    table().contains_key(text)
++}
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/gui_common/src/lib.rs src/ALVR-20.14.1/alvr/gui_common/src/lib.rs
+--- orig/ALVR-20.14.1/alvr/gui_common/src/lib.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/gui_common/src/lib.rs	2026-11-04 23:01:05.803183000 +0800
+@@ -1,4 +1,6 @@
+ mod basic_components;
++pub mod fonts;
++pub mod i18n;
+ pub mod theme;
+ 
+ pub use basic_components::*;
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/gui_common/src/theme.rs src/ALVR-20.14.1/alvr/gui_common/src/theme.rs
+--- orig/ALVR-20.14.1/alvr/gui_common/src/theme.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/gui_common/src/theme.rs	2026-11-04 23:01:05.827304600 +0800
+@@ -46,6 +46,8 @@
+ }
+ 
+ pub fn set_theme(ctx: &Context) {
++    crate::fonts::install_cjk_fonts(ctx);
++
+     ctx.set_theme(ThemePreference::Dark);
+ 
+     let mut style = (*ctx.style()).clone();
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/launcher/build.rs src/ALVR-20.14.1/alvr/launcher/build.rs
+--- orig/ALVR-20.14.1/alvr/launcher/build.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/launcher/build.rs	2026-11-04 23:19:21.058928200 +0800
+@@ -2,7 +2,13 @@
+ fn main() {
+     let mut resource = winres::WindowsResource::new();
+     resource.set_icon("../dashboard/resources/dashboard.ico");
+-    resource.compile().unwrap();
++    if let Ok(sdk) = std::env::var("WindowsSdkDir") {
++        resource.set_toolkit_path(&sdk);
++    }
++    // The icon is cosmetic; never fail the build over it.
++    if resource.compile().is_err() {
++        println!("cargo:warning=skipping Windows resource compilation (rc.exe not found)");
++    }
+ }
+ 
+ #[cfg(not(windows))]
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/launcher/src/actions.rs src/ALVR-20.14.1/alvr/launcher/src/actions.rs
+--- orig/ALVR-20.14.1/alvr/launcher/src/actions.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/launcher/src/actions.rs	2026-11-04 23:08:27.608331300 +0800
+@@ -25,7 +25,7 @@
+     worker_message_sender: Sender<WorkerMessage>,
+ ) {
+     tokio::runtime::Runtime::new()
+-        .expect("Failed to create tokio runtime")
++        .expect("创建 tokio 运行时失败")
+         .block_on(async {
+             let req_client = reqwest::Client::builder()
+                 .user_agent("ALVR-Launcher")
+@@ -34,7 +34,7 @@
+             let version_data = match fetch_all_releases(&req_client).await {
+                 Ok(data) => data,
+                 Err(e) => {
+-                    eprintln!("Error fetching version data: {e}");
++                    eprintln!("获取版本信息出错：{e}");
+                     return;
+                 }
+             };
+@@ -136,7 +136,7 @@
+     release: ReleaseInfo,
+ ) -> Result<()> {
+     worker_message_sender.send(WorkerMessage::ProgressUpdate(Progress {
+-        message: "Starting install".into(),
++        message: "开始安装".into(),
+         progress: 0.0,
+     }))?;
+ 
+@@ -147,12 +147,12 @@
+         let apk_url = release
+             .assets
+             .get(apk_name)
+-            .ok_or(anyhow::anyhow!("Unable to determine download URL"))?;
++            .ok_or(anyhow::anyhow!("无法确定下载地址"))?;
+         let apk_buffer = alvr_adb::commands::download(apk_url, |downloaded, total| {
+             let progress = total.map_or(0.0, |t| downloaded as f32 / t as f32);
+             worker_message_sender
+                 .send(WorkerMessage::ProgressUpdate(Progress {
+-                    message: "Downloading Client APK".into(),
++                    message: "正在下载客户端 APK".into(),
+                     progress,
+                 }))
+                 .ok();
+@@ -166,7 +166,7 @@
+         let progress = total.map_or(0.0, |t| downloaded as f32 / t as f32);
+         worker_message_sender
+             .send(WorkerMessage::ProgressUpdate(Progress {
+-                message: "Downloading ADB".into(),
++                message: "正在下载 ADB".into(),
+                 progress,
+             }))
+             .ok();
+@@ -175,14 +175,14 @@
+     let device_serial = alvr_adb::commands::list_devices(&adb_path)?
+         .iter()
+         .find_map(|d| d.serial.clone())
+-        .ok_or(anyhow::anyhow!("Failed to find connected device"))?;
++        .ok_or(anyhow::anyhow!("未找到已连接的设备"))?;
+ 
+     let v = if release.version.starts_with('v') {
+         release.version[1..].to_string()
+     } else {
+         release.version
+     };
+-    let version = Version::parse(&v).context("Failed to parse release version")?;
++    let version = Version::parse(&v).context("解析发布版本失败")?;
+     let stable = version.pre.is_empty() && !version.build.contains("nightly");
+     let application_id = if stable {
+         alvr_system_info::PACKAGE_NAME_GITHUB_STABLE
+@@ -192,14 +192,14 @@
+ 
+     if alvr_adb::commands::is_package_installed(&adb_path, &device_serial, application_id)? {
+         worker_message_sender.send(WorkerMessage::ProgressUpdate(Progress {
+-            message: "Uninstalling old APK".into(),
++            message: "正在卸载旧版 APK".into(),
+             progress: 0.0,
+         }))?;
+         alvr_adb::commands::uninstall_package(&adb_path, &device_serial, application_id)?;
+     }
+ 
+     worker_message_sender.send(WorkerMessage::ProgressUpdate(Progress {
+-        message: "Installing new APK".into(),
++        message: "正在安装新版 APK".into(),
+         progress: 0.0,
+     }))?;
+     alvr_adb::commands::install_package(&adb_path, &device_serial, &apk_path.to_string_lossy())?;
+@@ -230,7 +230,7 @@
+                 }))?
+             }
+             None => worker_message_sender.send(WorkerMessage::ProgressUpdate(Progress {
+-                message: format!("{message} (Progress unavailable)"),
++                message: format!("{message}（无法获取进度）"),
+                 progress: 0.5,
+             }))?,
+         }
+@@ -246,7 +246,7 @@
+     req_client: &reqwest::Client,
+ ) -> Result<()> {
+     worker_message_sender.send(WorkerMessage::ProgressUpdate(Progress {
+-        message: "Starting install".into(),
++        message: "开始安装".into(),
+         progress: 0.0,
+     }))?;
+ 
+@@ -259,11 +259,11 @@
+     let url = release_info
+         .assets
+         .get(file_name)
+-        .ok_or(anyhow::anyhow!("Unable to determine download link"))?;
++        .ok_or(anyhow::anyhow!("无法确定下载链接"))?;
+ 
+     let buffer = download(
+         worker_message_sender,
+-        "Downloading Streamer",
++        "正在下载串流端",
+         url,
+         req_client,
+     )
+@@ -310,11 +310,11 @@
+ 
+ pub fn data_dir() -> PathBuf {
+     if cfg!(target_os = "linux") {
+-        PathBuf::from(env::var("HOME").expect("Failed to determine home directory"))
++        PathBuf::from(env::var("HOME").expect("无法确定主目录"))
+             .join(".local/share/ALVR-Launcher")
+     } else {
+         env::current_exe()
+-            .expect("Unable to determine executable directory")
++            .expect("无法确定可执行文件目录")
+             .parent()
+             .unwrap()
+             .to_owned()
+@@ -331,7 +331,7 @@
+                     .filter(|entry| match entry.file_type() {
+                         Ok(file_type) => file_type.is_dir(),
+                         Err(e) => {
+-                            eprintln!("Failed to read entry file type: {e}");
++                            eprintln!("读取条目文件类型失败：{e}");
+                             false
+                         }
+                     })
+@@ -356,7 +356,7 @@
+             })
+             .collect(),
+         Err(e) => {
+-            eprintln!("Failed to read versions dir: {e}");
++            eprintln!("读取版本目录失败：{e}");
+             Vec::new()
+         }
+     }
+@@ -370,7 +370,7 @@
+     } else if cfg!(target_os = "linux") {
+         installation_dir.join("alvr_streamer_linux/bin/alvr_dashboard")
+     } else {
+-        bail!("Unsupported platform")
++        bail!("不支持的平台")
+     };
+ 
+     Command::new(dashboard_path).spawn()?;
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/launcher/src/main.rs src/ALVR-20.14.1/alvr/launcher/src/main.rs
+--- orig/ALVR-20.14.1/alvr/launcher/src/main.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/launcher/src/main.rs	2026-11-04 23:08:27.608878400 +0800
+@@ -66,7 +66,7 @@
+     }
+ 
+     eframe::run_native(
+-        "ALVR Launcher",
++        "ALVR 启动器",
+         eframe::NativeOptions {
+             viewport: ViewportBuilder::default()
+                 .with_app_id("alvr.launcher")
+diff -ruN '--exclude=target' '--exclude=openvr' '--exclude=build.log' orig/ALVR-20.14.1/alvr/launcher/src/ui.rs src/ALVR-20.14.1/alvr/launcher/src/ui.rs
+--- orig/ALVR-20.14.1/alvr/launcher/src/ui.rs	2025-07-15 01:18:07.000000000 +0800
++++ src/ALVR-20.14.1/alvr/launcher/src/ui.rs	2026-11-04 23:08:27.593667300 +0800
+@@ -78,9 +78,9 @@
+     ) -> PopupType {
+         let response = alvr_gui_common::modal(
+             ctx,
+-            "Add version",
++            "添加版本",
+             {
+-                // Safety: unwrap is safe because the "Add release" button is available after populating the release_channels_info.
++                // Safety: unwrap is safe because the "添加发布版本" button is available after populating the release_channels_info.
+                 let release_channels_info = self.release_channels_info.as_ref().unwrap();
+                 Some(|ui: &mut Ui| {
+                     let version_str = version.string.clone();
+@@ -111,11 +111,11 @@
+                         .collect();
+ 
+                     Grid::new("add-version-grid").num_columns(2).show(ui, |ui| {
+-                        ui.label("Channel");
++                        ui.label("渠道");
+                         ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
+                             let channel_str = match version.release_channel {
+-                                ReleaseChannelType::Stable => "Stable",
+-                                ReleaseChannelType::Nightly => "Nightly",
++                                ReleaseChannelType::Stable => "稳定版",
++                                ReleaseChannelType::Nightly => "每夜版",
+                             };
+ 
+                             ComboBox::from_id_salt("channel")
+@@ -127,7 +127,7 @@
+                                             string: release_channels_info.stable[0].version.clone(),
+                                             release_channel: ReleaseChannelType::Stable,
+                                         },
+-                                        "Stable",
++                                        "稳定版",
+                                     );
+                                     ui.selectable_value(
+                                         &mut version,
+@@ -137,13 +137,13 @@
+                                                 .clone(),
+                                             release_channel: ReleaseChannelType::Nightly,
+                                         },
+-                                        "Nightly",
++                                        "每夜版",
+                                     );
+                                 })
+                         });
+                         ui.end_row();
+ 
+-                        ui.label("Version");
++                        ui.label("版本");
+                         ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
+                             ComboBox::from_id_salt("version")
+                                 .selected_text(version_str)
+@@ -156,12 +156,12 @@
+                         ui.end_row();
+ 
+                         if cfg!(windows) {
+-                            ui.label("Copy session from:");
++                            ui.label("从以下版本复制会话：");
+                             ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
+                                 ComboBox::from_id_salt("session")
+-                                    .selected_text(session_version.clone().unwrap_or("None".into()))
++                                    .selected_text(session_version.clone().unwrap_or("无".into()))
+                                     .show_ui(ui, |ui| {
+-                                        ui.selectable_value(&mut session_version, None, "None");
++                                        ui.selectable_value(&mut session_version, None, "无");
+                                         for ver_str in installations_with_session {
+                                             ui.selectable_value(
+                                                 &mut session_version,
+@@ -176,7 +176,7 @@
+                     });
+                 })
+             },
+-            &[ModalButton::Cancel, ModalButton::Custom("Install".into())],
++            &[ModalButton::Cancel, ModalButton::Custom("安装".into())],
+             None,
+         );
+ 
+@@ -224,10 +224,10 @@
+         let mut delete_version = false;
+         let response = alvr_gui_common::modal(
+             ctx,
+-            "Edit version",
++            "编辑版本",
+             Some(|ui: &mut Ui| {
+                 ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
+-                    delete_version = ui.button("Delete version").clicked();
++                    delete_version = ui.button("删除版本").clicked();
+                 });
+             }),
+             &[ModalButton::Close],
+@@ -246,18 +246,18 @@
+     fn delete_popup(&mut self, ctx: &Context, version: String) -> PopupType {
+         let response = alvr_gui_common::modal(
+             ctx,
+-            "Are you sure?",
++            "确定吗？",
+             Some({
+                 let version = version.clone();
+                 move |ui: &mut Ui| {
+                     ui.with_layout(Layout::top_down(Align::Center), |ui| {
+-                        ui.label(format!("This will permanently delete version {version}"));
++                        ui.label(format!("这将永久删除版本 {version}"));
+                     });
+                 }
+             }),
+             &[
+                 ModalButton::Cancel,
+-                ModalButton::Custom("Delete version".into()),
++                ModalButton::Custom("删除版本".into()),
+             ],
+             None,
+         );
+@@ -266,7 +266,7 @@
+             Some(ModalButton::Cancel) => PopupType::None,
+             Some(ModalButton::Custom(_)) => {
+                 if let Err(e) = actions::delete_installation(&version) {
+-                    self.state = State::Error(format!("Failed to delete version: {e}"));
++                    self.state = State::Error(format!("删除版本失败：{e}"));
+                 }
+ 
+                 self.installations = actions::get_installations();
+@@ -298,10 +298,10 @@
+         CentralPanel::default().show(ctx, |ui| match &self.state {
+             State::Default => {
+                 ui.with_layout(Layout::top_down(Align::Center), |ui| {
+-                    ui.label(RichText::new("ALVR Launcher").size(25.0).strong());
++                    ui.label(RichText::new("ALVR 启动器").size(25.0).strong());
+                     ui.label(match &self.release_channels_info {
+-                        Some(data) => format!("Latest stable release: {}", data.stable[0].version),
+-                        None => "Fetching latest release...".into(),
++                        Some(data) => format!("最新稳定版：{}", data.stable[0].version),
++                        None => "正在获取最新版本……".into(),
+                     });
+ 
+                     for installation in &self.installations {
+@@ -316,13 +316,13 @@
+                                     .show(ui, |ui| {
+                                         ui.label(&installation.version);
+                                         ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
+-                                            if ui.button("Edit").clicked() {
++                                            if ui.button("编辑").clicked() {
+                                                 self.popup = PopupType::EditVersion(
+                                                     installation.version.clone(),
+                                                 );
+                                             }
+ 
+-                                            if ui.button("Open directory").clicked() {
++                                            if ui.button("打开目录").clicked() {
+                                                 open::that_in_background(path);
+                                             }
+ 
+@@ -339,7 +339,7 @@
+                                                 .add_enabled(
+                                                     release_info.is_some()
+                                                         || installation.is_apk_downloaded,
+-                                                    Button::new("Install APK"),
++                                                    Button::new("安装 APK"),
+                                                 )
+                                                 .clicked()
+                                             {
+@@ -351,12 +351,12 @@
+                                                         .ok();
+                                                 } else {
+                                                     self.state = State::Error(
+-                                                        "Failed to get release info".into(),
++                                                        "获取发布信息失败".into(),
+                                                     );
+                                                 }
+                                             };
+ 
+-                                            if ui.button("Launch").clicked() {
++                                            if ui.button("启动").clicked() {
+                                                 match actions::launch_dashboard(
+                                                     &installation.version,
+                                                 ) {
+@@ -381,7 +381,7 @@
+                     if ui
+                         .add_enabled(
+                             self.release_channels_info.is_some(),
+-                            Button::new("Add version"),
++                            Button::new("添加版本"),
+                         )
+                         .clicked()
+                     {
+@@ -417,10 +417,10 @@
+             State::Error(e) => {
+                 let e = e.clone(); // Avoid borrowing issues with the closure for the layout
+                 ui.with_layout(Layout::top_down(Align::Center), |ui| {
+-                    ui.colored_label(Color32::LIGHT_RED, "Error!");
++                    ui.colored_label(Color32::LIGHT_RED, "错误！");
+                     ui.label(e);
+ 
+-                    if ui.button("Close").clicked() {
++                    if ui.button("关闭").clicked() {
+                         self.state = State::Default;
+                     }
+                 });

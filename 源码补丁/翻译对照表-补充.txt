@@ -1,0 +1,82 @@
+Resolution	分辨率
+Preferred framerate	首选帧率
+Codec preset	编解码器预设
+Encoder preset	编码器预设
+Foveation preset	注视点预设
+Eye and face tracking	眼动与面部追踪
+Scale	缩放
+Absolute	绝对
+Quality	画质
+Balanced	均衡
+Speed	速度
+High quality	高质量
+Low latency	低延迟
+Ultra low latency	极低延迟
+Lossless	无损
+Quarter resolution	1/4 分辨率
+Full resolution	全分辨率
+Spatial	空间
+Temporal	时间
+Constant mbps	恒定 Mbps
+Adaptive	自适应
+Low	低
+Medium	中
+Static	静态
+Dynamic	动态
+A v1	AV1
+Hevc	HEVC
+Blend	混合
+Rgb chroma key	RGB 抠像
+Hsv chroma key	HSV 抠像
+Normal	标准
+Name substring	按名称（子串）
+Index	按索引
+V a c	Virtual Audio Cable
+V b cable	VB Cable
+Voice meeter	VoiceMeeter
+Voice meeter aux	VoiceMeeter Aux
+Voice meeter vaio3	VoiceMeeter VAIO3
+Custom	自定义
+Rift s	Rift S
+Quest2	Quest 2
+Quest pro	Quest Pro
+Vrchat eye osc	VRChat Eye OSC
+Vrc face tracking	VRCFaceTracking
+Object tracking	物体追踪
+Fake vive tracker	虚拟 Vive 追踪器
+Vrchat body osc	VRChat 身体 OSC
+Rift s touch	Rift S Touch
+Quest2 touch	Quest 2 Touch
+Quest3 plus	Quest 3 Touch Plus
+Pico4	Pico 4
+Valve index	Valve Index
+Vive wand	Vive Wand
+Vive tracker	Vive Tracker
+Hysteresis threshold	迟滞阈值
+Binary to scalar	二元转标量
+Remap	重映射
+Local floor	本地地面
+Local	本地
+Yaw	偏航
+Tilted	倾斜
+Udp	UDP
+Tcp	TCP
+Default	默认
+Maximum	最大
+Best effort	尽力而为
+Class selector	类别选择符
+Assured forwarding	确保转发
+Expedited forwarding	加速转发
+Disabled	禁用
+Enabled	启用
+System Default	系统默认
+Automatic	自动
+Windows pc	Windows 电脑
+Linux pc	Linux 电脑
+Macos	macOS
+Apple headset	Apple 头显
+Store	商店版
+Github	GitHub 版
+Quest3	Quest 3
+Quest1	Quest
+Pico neo3	Pico Neo 3

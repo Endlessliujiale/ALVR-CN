@@ -1,0 +1,23 @@
+源码补丁说明
+============
+
+alvr-zh-cn.patch
+    相对于官方 ALVR v20.14.1 源码（https://github.com/alvr-org/ALVR 标签 v20.14.1）
+    的完整汉化改动，共 37 个文件。用法：
+
+        git clone --branch v20.14.1 --recursive https://github.com/alvr-org/ALVR
+        cd ALVR
+        git apply /path/to/alvr-zh-cn.patch
+        cargo build --release -p alvr_dashboard -p alvr_launcher
+
+    注意：官方仓库带 submodule（openvr 头文件），必须加 --recursive，
+    否则 alvr_session 的 build.rs 会报 Missing openvr header files。
+
+翻译对照表-设置项.txt / 翻译对照表-补充.txt
+    设置项与枚举选项的英文原文 → 中文对照表，格式为「编号<TAB>中文」。
+    编号与源码提取顺序一一对应（L=字符串字面量，A=自动生成的字段标签）。
+    改词条时可对照 i18n_data.rs 里的英文键直接替换。
+
+体积说明
+    ALVR Dashboard.exe  约 15 MB（原版 14.3 MB，多出的部分是中文字典与字体加载）
+    ALVR Launcher.exe   约 9.7 MB
